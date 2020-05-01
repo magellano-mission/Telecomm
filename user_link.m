@@ -4,7 +4,7 @@ set(0, 'DefaultLegendInterpreter', 'default');
 
 
 % EIRP needed
-f = 4.01e8; %[Hz]
+f = 4.01e8; %[Hz] %UHF
 c = 3e8; %[m/s]
 lambda = c / f;
 
@@ -19,10 +19,10 @@ design_margin = 3; %dB
 
 path_loss = @(x) 20 * log10(4 * pi * x / lambda);
 
-SMA = linspace(100, 20000e3, 1000) + R_mars; %[m]
+SMA = linspace(100e3, 20000e3, 1000) + R_mars; %[m]
 
 
-losses = path_loss(SMA);
+losses = path_loss(SMA - R_mars);
 
 EIRP = min_power_recieved - gain_reciever + losses + design_margin;
 
@@ -60,24 +60,21 @@ legend('G = 0', 'G = 2', 'G = 5', 'G = 10', 'G = 15')
 k = 1.3806e-23;
 T_bb = 20;
 T_amp = 30;
-bandwidth = 15e6;
-
-P_noise = 10 * log10(k * (T_bb + T_amp) * bandwidth);
 
 CNR_min = linspace(3, 25, 100);
 
 figure
 hold on
-for kk = 1 : 100
+
     P_noise = min_power_recieved - CNR_min;
     bandwidth = 10.^(P_noise./ 10) ./ (k*(T_bb + T_amp));
     plot(CNR_min, bandwidth/1e6, 'LineWidth', 2)
-end
+
 xlabel('Minimum CNR [dB]')
 ylabel('Bandwidth [MHz]')
 title('Maximum bandwidth to achieve a given CNR @UHF')
 hold on
-yline(15);
+yline(4);
 yline(1);
 grid on
 
