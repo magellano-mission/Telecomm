@@ -1,6 +1,6 @@
 clc;clear;close all; 
-set(0,'DefaultTextInterpreter','latex');
-set(0, 'DefaultLegendInterpreter', 'Latex');
+set(0,'DefaultTextInterpreter','default');
+set(0, 'DefaultLegendInterpreter', 'default');
 
 
 % EIRP needed
