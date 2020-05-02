@@ -4,6 +4,9 @@ function [output] = zfun_link_budget(frq,BW,dist,pow_t,dia_t,e_a,atm_t, ...
 %populate the nominal link budget.
 %This code should be compared with a couple of online calculators and
 %reference papers such as MRO to ensure it is correct.
+%BER - bit error rate
+%SNR - Signal to noise ratio
+%CNR - carrier to noise ratio
 
 lambda = physconst('LightSpeed')/frq;   %[m] wavelength of signal
 
