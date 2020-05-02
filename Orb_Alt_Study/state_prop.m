@@ -1,8 +1,6 @@
 function [pos, vel, ang, hchord] = state_prop(alt,time)
 %Function to propagate the states of surface and orbital vehicles over a
-% given time period. It is assumed that surface vehicles and orbital
-% vehicles begin the time period separate by 180 degrees around the equator
-% of Mars
+% given time period.
 
 % ASSUMES CIRCULAR ORBIT
 
@@ -23,7 +21,7 @@ if alt == 0
     
     %propagate position vector
     sph(:,1) = n.*time';          %[rad] azimuth
-    %pos_rad(:,2) = NA            %[km] elevation angle
+    sph(:,2) = 0;                 %[km] elevation angle
     sph(:,3) = r_mars;            %[km] radius (constant)
     [pos(:,1),pos(:,2),pos(:,3)] = sph2cart(sph(:,1),sph(:,2),sph(:,3));
     pos = pos * 1000;             %[m] convert units to metres
@@ -33,7 +31,6 @@ if alt == 0
 end
     
 %% Orbital User
-
 if alt > 0
     r = r_mars + alt;             %[km] orbital radius
     a = r;                        %[km] assuming circular orbit
@@ -44,8 +41,8 @@ if alt > 0
     pos = zeros(length(time),3);  %[km,km,km] cartesian position vector
     
     %propagate position vector
-    sph(:,1) = n.*time'-pi;       %[rad] azimuth (offset from surface user)
-    %pos_rad(:,2) =               %[km] elevation angle
+    sph(:,1) = n.*time';       %[rad] azimuth (offset from surface user)
+    sph(:,2) = 0;                 %[km] elevation angle
     sph(:,3) = r;                 %[km] radius (constant)
     [pos(:,1),pos(:,2),pos(:,3)] = sph2cart(sph(:,1),sph(:,2),sph(:,3));
     pos = pos * 1000;             %[m] convert units to metres

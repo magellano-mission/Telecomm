@@ -1,5 +1,4 @@
-function [output] = zfun_link_budget(frq,BW,dist,pow_t,dia_t,e_a,atm_t, ...
-    dia_r,k_r)
+function [output] = zfun_link_rate(frq,dist,pow_t,atm_t)
 %This function will take input variables about the link in question and
 %populate the nominal link budget.
 %This code should be compared with a couple of online calculators and

@@ -1,7 +1,9 @@
-function [UHF_Gs] = MRO_UHF_401_6()
-% This function creates a spline curve of the dB gain versus angle off bore
-% axis for the MRO and Curiosity UHF antennas transmitting at 401.6 MHz
-G_pat = [0 2.1;
+function [bor, ele] = MRO_UHF_401_6()
+% This function creates spline curves of the dB gain versus angle off bore
+% axis and elevation angle for the MRO and Curiosity UHF antennas 
+% transmitting at 401.6 MHz
+
+G_bor = [0 2.1;
     5 2.2;
     10 2.2;
     15 2.2;
@@ -20,7 +22,13 @@ G_pat = [0 2.1;
     80 -4.4;
     85 -5.2;
     90 -6.0;];
+
+G_bor(:,1) = deg2rad(G_bor(:,1));
+G_ele = G_bor;
+G_ele(:,2) = flip(G_ele(:,2));
     
-UHF_Gs = fit(G_pat(:,1),G_pat(:,2),'smoothingspline');
+bor = fit(G_bor(:,1),G_bor(:,2),'smoothingspline');
+ele = fit(G_ele(:,1),G_ele(:,2),'smoothingspline');
+
     
     
