@@ -1,32 +1,56 @@
-function [pos, vel, ang, hchord] = state_prop(alt,time)
+function [pos, vel, ang, hchord] = state_prop(type,state,time)
 %Function to propagate the states of surface and orbital vehicles over a
-% given time period.
+% given time period. A circular orbit is assumed for orbital vehicles.
+% Functionality may be added later to allow surface user velocity.
 
-% ASSUMES CIRCULAR ORBIT
+% States are populated using a NON-ROTATING MARS CENTRED REFERENCE FRAME
+% Rotations are defined positive counter-clockwise
 
-% INPUTS KM, OUTPUTS M
+%% INPUTS
+%type      - [str] 'ground' or 'orbiter'
+%state     - [rad & km] initial latitude and longitude for ground users, or
+             %vector of initial keplerian elements for orbiters
+%time      - [s] time vector over which to evaluate
+
 vel = NaN;
 hchord = NaN;
 
 r_mars = astroConstants(24);      %[km] radius at surface of Mars
 mu     = astroConstants(14);      %[km^3/s^2] Mars gravitational parameter
 mars_day = 88620;                 %[s]
-n = 2*pi / mars_day;              %[rad/s] Mars rotational angular velocity
   
 %% Surface User
-if alt == 0
-    %initialise blank matrices
-    sph = zeros(length(time),3);  %[km,rad,rad] spherical position vector
-    pos = zeros(length(time),3);  %[km,km,km] cartesian position vector
+if ismember("ground",type) == 1
+    n = 2*pi / mars_day;          %[rad/s] Mars angular velocity about axis
+    lat = state(1);               %[rad] user latitude
+    lon = state(2);               %[rad] user longitude
+    
+    %initialise position and velocity matrices
+    spp = zeros(length(time),3);  %[rad,rad,km] spherical position vector  [azi,ele,radius] = [lat,lon,radius]  
+    %spa = zeros(length(time),3);  %[rad/s2,rad/s2,km/s2] spherical acceleration vector
+    pos = zeros(length(time),3);  %[km,km,km] Cartesian position vector
+    vel = zeros(length(time),3);  %[km/s,km/s,km/s] Cartesian velocity vector
     
     %propagate position vector
-    sph(:,1) = n.*time';          %[rad] azimuth
-    sph(:,2) = 0;                 %[km] elevation angle
-    sph(:,3) = r_mars;            %[km] radius (constant)
-    [pos(:,1),pos(:,2),pos(:,3)] = sph2cart(sph(:,1),sph(:,2),sph(:,3));
-    pos = pos * 1000;             %[m] convert units to metres
+    spp(1,:) = [lat, lon, r_mars];          %user initial position
+    spp(:,1) = n.*time' + spp(1,1);         %propagate azimuth
+    spp(:,2) = spp(1,2);                    %propagate elevation (constant)
+    spp(:,3) = r_mars;                      %propagate radius (constant)
+    %spherical coords to Cartesian, angles +ve CCW from +ve x axis (right)
+   [pos(:,1),pos(:,2),pos(:,3)] = sph2cart(spp(:,1),spp(:,2),spp(:,3));
     
-    ang = sph(:,1);
+    %propagate velocity vector
+    spv = [n;0;0];                     %[rad/s,rad/s,km/s] spherical velocity vector
+    speed = n*r_mars*cos(lat);         %instantaneous speed
+    
+    for i = 1:length(time) %I couldn't quickly think of a better way to do this
+        dot = speed*sph2cartvec(spv,rad2deg(spp(i,1) + pi/2),0);
+        vel(i,1) = dot(1);
+        vel(i,2) = dot(2);
+        vel(i,3) = 0;
+    end
+    
+    ang = spp(:,1);
     
 end
     
@@ -37,21 +61,21 @@ if alt > 0
     T = 2*pi*sqrt(a^3/mu);        %[s] orbital period
     n = 2*pi/T;                   %[rad/s] mean motion parameter
     
-    sph = zeros(length(time),3);  %[km,rad,rad] spherical position vector
+    spp = zeros(length(time),3);  %[km,rad,rad] spherical position vector
     pos = zeros(length(time),3);  %[km,km,km] cartesian position vector
     
     %propagate position vector
-    sph(:,1) = n.*time';       %[rad] azimuth (offset from surface user)
-    sph(:,2) = 0;                 %[km] elevation angle
-    sph(:,3) = r;                 %[km] radius (constant)
-    [pos(:,1),pos(:,2),pos(:,3)] = sph2cart(sph(:,1),sph(:,2),sph(:,3));
+    spp(:,1) = n.*time';       %[rad] azimuth (offset from surface user)
+    spp(:,2) = 0;                 %[km] elevation angle
+    spp(:,3) = r;                 %[km] radius (constant)
+    [pos(:,1),pos(:,2),pos(:,3)] = sph2cart(spp(:,1),spp(:,2),spp(:,3));
     pos = pos * 1000;             %[m] convert units to metres
     
     theta = 2*acos(r_mars/r);   %[rad] chord central angle  
     chord = 2*r*sin(theta/2);    %[km] chord length
     hchord = chord/2*1000;       %[m] convert units to metres and halve
     
-    ang = sph(:,1);
+    ang = spp(:,1);
   
 end
 

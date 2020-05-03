@@ -1,23 +1,47 @@
-function [orb] = pass_over_power(frq,powt,powr,alt,t,dt,gain_curve,title,T_s,BW,code)
+function [orb] = pass_over_power(frq,powt,powr,keps,lint,t,dt,gaint,gainr,title,T_s,BW,code)
+
+% Change nomenclature to range and range-rate to reduce confusion when
+% navigation is introduced
+
+%% INPUTS
+%frq    - [Hz]      Carrier wave frequency
+%powt   - [W]       Transmitted RF power
+%powr   - [W,W]     Minimum and maximum signal power limits of receiver
+%keps   - [km,rad]  Keplerian elements of orbits to be studied 
+%lint   - [rad,rad] Initial latitude and longitude of ground user (MAY ADD VELOCITY IN THE FUTURE)
+%t      - [s]       Vector of time span to be analysed
+%dt     - [s]       Time step
+%gaint  - [dBi,rad] Gain vs angle curve of transmission antenna
+%gainr  - [dBi,rad] Gain vs angle curve of transmission antenna
+%title  - [str]     Title for plot window
+%T_s    - [K]       Effective noise temperature of the receiving system
+%BW     - [Hz]      Receiver bandwidth (MAY MAKE THIS DYNAMIC IN FUTURE)
+%code.M - [-]       Max modulation efficiency
+%code.R - [-]       Error encoding rate (0.5 for turbo coding)
+%code.P - [str]     Polarisation of receiver and signal 'lin' or 'cir'
 
 %% GROUND USER STATES
-grd = struct;     %structure for storing ground user state info
+% Later this can just be changed to generic user, first need to think more
+% about things like 3D angles between orbiters, Mars LOS blocking etc
+
 
 %finding state for ground user over the time vector
-[grd.pos,~,grd.ang,~] = state_prop(0,t);  %[m,m/s]
+[grd.pos,~,grd.ang,~] = state_prop('ground',lint,t);  %[m,m/s]
 %ground user absolute distance from Mars centre
 grd.dis = sqrt(sum(grd.pos'.^2))';        %[m]
+
+%CHANGE TO KM HERE AFTER STATE SCRIPT
 
 %% ORBITAL USER STATES AND LINK CALCULATIONS
 orb = struct;     %structure for storing orbiter state info
 
 %finding state for the different altitude orbiters over the time vector
-for i = 1:length(alt)
-    %Retrieving state vector history and the mars surface half-chord length
-    % for the particular altitude orbit
-    [orb(i).pos,~,orb(i).ang,orb(i).hchord] = state_prop(alt(i),t); %[m,m/s]
+for i = 1:length(keps)
+    %Retrieving state vector history and the half-chord length with Mars surface
+    [orb(i).pos,~,orb(i).ang,orb(i).hchord] = ...
+        state_prop('orbiter',keps(i),t); %[m,m/s]
     
-    %calculating the RELATIVE position between the orbiter and ground user
+    %RELATIVE position between orbiter and ground user
     % IN MARS INERTIAL COORDINATES
      orb(i).rel = orb(i).pos - grd.pos;             %[m,m,m]
      
@@ -44,9 +68,10 @@ for i = 1:length(alt)
             %solving for elevation angle
             orb(i).ele(j) = C - pi/2;           %[rad]
             %finding single antenna gain for the given elevation angle
-            gain = gain_curve(orb(i).ele(j));    %[dBi]
+            gt_el = gaint(orb(i).ele(j));    %[dBi]
+            gr_el = gainr(orb(i).ele(j));    %[dBi]
             %calculating the total energy transmission per time step
-            [out] = zfun_link_rate(frq,a,powt,powr,gain,gain,T_s,BW,dt,code);
+            [out] = zfun_link_rate(frq,a,powt,powr,gt_el,gr_el,T_s,BW,dt,code);
             orb(i).dE(j) = out.E;
             orb(i).PdB(j) = out.PdB;
             orb(i).CNR(j) = out.CNRdB;
