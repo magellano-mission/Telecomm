@@ -1,6 +1,6 @@
-function [bor, ele] = MRO_LGA_7183()
+function [bor, ele] = MRO_MGA_7183()
 % This function creates a spline curve of the dB gain versus angle off bore
-% axis for the MRO LGA operating at 7183 MHz
+% axis for an improved MRO horn antenna operating at 7183 MHz
 
 G_bor = [0 0;
     5 -0.15;
@@ -22,7 +22,7 @@ G_bor = [0 0;
     85 -15.7;
     90 -16.6;];
 
-G_bor(:,2) = G_bor(:,2) + 8.8;
+G_bor(:,2) = G_bor(:,2) + 20;
 G_bor(:,1) = deg2rad(G_bor(:,1));
 G_ele = G_bor;
 G_ele(:,2) = flip(G_ele(:,2));

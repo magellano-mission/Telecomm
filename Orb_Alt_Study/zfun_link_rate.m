@@ -33,13 +33,14 @@ if PdB_r >= powr(1) && PdB_r <= powr(2)
 else
     %Transmission not possible
     CNR = NaN;
+    CNRdB = NaN;
 end
 
 %Finding the best possible symbol and bit rates for the given CNR in dB
 % CNRdB values from table in Satellite Communication book
 
 % CURRENTLY LIMITED TO QPSK, REVISIT THIS SECTION IF HIGHER RATES 
-if CNRdB < 5
+if CNRdB < 5 || isnan(CNRdB)
     M = 0;          %no data transmission
     R =0;           %no data transmission
 end
@@ -56,7 +57,17 @@ if CNRdB >= 15
     M = 4;          %QPSK
     R = 1;          %no error correction coding
     else
-        M=2;        %BPSK
+        M= code.M;
+        R = 1;
+    end
+end
+if CNRdB >= 19
+    if code.M >= 8
+    M = 8;          %8PSK
+    R = 1;          %no error correction coding
+    else
+        M= code.M;
+        R = 1;
     end
 end
 

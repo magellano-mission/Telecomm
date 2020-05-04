@@ -1,9 +1,10 @@
-function [orb] = pass_over(go,frq,powt,powr,keps,lint,t,dt,gaint,gainr,title,T_s,BW,code)
+function [orb] = pass_over(cas,go,frq,powt,powr,keps,lint,t,dt,gaint,gainr,title,T_s,BW,code)
 
 % Change nomenclature to range and range-rate to reduce confusion when
 % navigation is introduced
 
 %% INPUTS
+%cas    - [-]       Case number
 %go     - [-]       1 - run the case, 0 - don't run the case
 %frq    - [Hz]      Carrier wave frequency
 %powt   - [W]       Transmitted RF power
@@ -98,6 +99,7 @@ for i = 1:size(keps,1)
 end
 
 %% PLOTS
+figure(cas)
 subplot(3,3,1)
 hold on
 for i = 1:length(orb)
