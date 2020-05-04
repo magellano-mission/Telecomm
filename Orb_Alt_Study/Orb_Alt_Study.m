@@ -1,6 +1,10 @@
 clearvars; clc; clf
 format compact
 
+%% NOTES
+%Need to include atmospheric losses, ionoshperic losses and a generic loss
+% margin. Investigate and include a typical transponder back-off value.
+
 %% SHARED INPUTS
 T_amb = 290;       %[K] Assumed ambient temperature (STANDARD - REVISIT)
 T_ant = 20;        %[K] Assumed antenna temperature in space
