@@ -19,13 +19,13 @@ T_s = T_amb*(10^(F/10)-1);  %[K] System effective noise temperature
 
 %Orbiter PSEUDO-Keplerian elements (ALTITUDE, NOT SEMI-MAJOR AXIS)
 keps = [200,0,0,0,0,0;      %[km,deg,deg,deg,deg,deg]
-        600,0,0,0,0,0;
-        1000,0,0,0,0,0];
+        200,0,15,0,0,0;
+        200,0,30,0,0,0];
 keps(:,2:6) = deg2rad(keps(:,2:6));           %degrees to radians
 keps(:,1)   = keps(:,1) + astroConstants(24); %altitude to radius in [km]
 
 %Ground user initial position
-lint = [0,0];               %[deg lat, deg long]
+lint = [15,0];               %[deg lat, deg long]
 lint = deg2rad(lint);       %degress to radians
 
 %% CASE 1 - MRO/Curiosity UHF at 401.6 MHz

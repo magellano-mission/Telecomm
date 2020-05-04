@@ -67,7 +67,7 @@ data = rate*dt;     %[bits] volume of data transferred in time step
 %Saving variables to an output structure
 out.PdB   = PdB_r;                %[dBW] Received power
 out.P_W   = PW_r;                 %[W]   Received power raw
-out.E     = out.P_W * dt;         %[J]   Received energy in time step
+out.dE    = out.P_W * dt;         %[J]   Received energy in time step
 out.CNR   = CNR;                  %[-]   Raw CNR power ratio
 out.CNRdB = CNRdB;                %[dB]  log10 of CNR power ratio
 out.rate = rate;                  %[bits/s] rate of useful information transfer

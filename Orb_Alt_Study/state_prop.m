@@ -1,4 +1,4 @@
-function [pos, vel, ang, hchord] = state_prop(type,state,time)
+function [out] = state_prop(type,state,time)
 %Function to propagate the states of surface and orbital vehicles over a
 % given time period. A circular orbit is assumed for orbital vehicles.
 % Functionality may be added later to allow surface user velocity.
@@ -12,9 +12,6 @@ function [pos, vel, ang, hchord] = state_prop(type,state,time)
              %vector of initial keplerian elements for orbiters
 %time      - [s] time vector over which to evaluate
 
-vel = NaN;
-hchord = NaN;
-
 r_mars = astroConstants(24);      %[km] radius at surface of Mars
 mu     = astroConstants(14);      %[km^3/s^2] Mars gravitational parameter
 mars_day = 88620;                 %[s]
@@ -27,12 +24,12 @@ if ismember("ground",type) == 1
     
     %initialise position and velocity matrices
     spp = zeros(length(time),3);  %[rad,rad,km] spherical position vector  [azi,ele,radius] = [lat,lon,radius]  
-    %spa = zeros(length(time),3);  %[rad/s2,rad/s2,km/s2] spherical acceleration vector
+    spv = zeros(length(time),3);  %[rad/s,rad/s,km/s] spherical velocity vector
     pos = zeros(length(time),3);  %[km,km,km] Cartesian position vector
     vel = zeros(length(time),3);  %[km/s,km/s,km/s] Cartesian velocity vector
     
     %propagate position vector
-    spp(1,:) = [lat, lon, r_mars];          %user initial position
+    spp(1,:) = [lon, lat, r_mars];          %user initial position [az,ele,r] w.r.t non-rotating Mars centre
     spp(:,1) = n.*time' + spp(1,1);         %propagate azimuth
     spp(:,2) = spp(1,2);                    %propagate elevation (constant)
     spp(:,3) = r_mars;                      %propagate radius (constant)
@@ -40,42 +37,52 @@ if ismember("ground",type) == 1
    [pos(:,1),pos(:,2),pos(:,3)] = sph2cart(spp(:,1),spp(:,2),spp(:,3));
     
     %propagate velocity vector
-    spv = [n;0;0];                     %[rad/s,rad/s,km/s] spherical velocity vector
-    speed = n*r_mars*cos(lat);         %instantaneous speed
-    
-    for i = 1:length(time) %I couldn't quickly think of a better way to do this
-        dot = speed*sph2cartvec(spv,rad2deg(spp(i,1) + pi/2),0);
-        vel(i,1) = dot(1);
-        vel(i,2) = dot(2);
-        vel(i,3) = 0;
-    end
-    
-    ang = spp(:,1);
+    spv(:,1) = spp(:,1) + pi/2;             %perpendicular to radius
+    spv(:,2) = 0;                           %change in elevation
+    spv(:,3) = n*r_mars*cos(lat);           %scalar speed
+    %spherical coords to Cartesian, angles +ve CCW from +ve x axis (right)
+   [vel(:,1),vel(:,2),vel(:,3)] = sph2cart(spv(:,1),spv(:,2),spv(:,3));
+   
+   %Outputs for ground user
+   out.pos = pos;                   %[km] Cartesian position vector
+   out.vel = vel;                   %[km] Cartesian velocity vector
+   %out.ang = spp(:,1);              %[rad] Azimuth w.r.t Mars centre
     
 end
     
 %% Orbital User
-if alt > 0
-    r = r_mars + alt;             %[km] orbital radius
+if ismember("orbiter",type) == 1
+    r = state(1);                 %[km] orbital radius
     a = r;                        %[km] assuming circular orbit
     T = 2*pi*sqrt(a^3/mu);        %[s] orbital period
     n = 2*pi/T;                   %[rad/s] mean motion parameter
     
-    spp = zeros(length(time),3);  %[km,rad,rad] spherical position vector
-    pos = zeros(length(time),3);  %[km,km,km] cartesian position vector
+    %initialise position and velocity matrices
+    pos = zeros(length(time),3);
+    vel = zeros(length(time),3);
     
-    %propagate position vector
-    spp(:,1) = n.*time';       %[rad] azimuth (offset from surface user)
-    spp(:,2) = 0;                 %[km] elevation angle
-    spp(:,3) = r;                 %[km] radius (constant)
-    [pos(:,1),pos(:,2),pos(:,3)] = sph2cart(spp(:,1),spp(:,2),spp(:,3));
-    pos = pos * 1000;             %[m] convert units to metres
+    %propagate true anomaly
+    keps(1,1:6) = state;
+    keps = repmat(keps,length(time),1);
+    keps(:,5) = n.*time' + keps(1,5);
     
-    theta = 2*acos(r_mars/r);   %[rad] chord central angle  
+    %convert Keplerian elements to Cartesian
+    for i = 1:length(time)
+        [p, v] = par2car(keps(i,1),keps(i,2),keps(i,3),keps(i,4),keps(i,5),keps(i,6),mu);
+        pos(i,:) = p';
+        vel(i,:) = v';
+    end
+    
+    %calculate the half-chord length for checking orbiter visibility
+    theta = 2*acos(r_mars/r);    %[rad] chord central angle  
     chord = 2*r*sin(theta/2);    %[km] chord length
-    hchord = chord/2*1000;       %[m] convert units to metres and halve
+    hchord = chord/2;            %[m] halve to get one-way distance
     
-    ang = spp(:,1);
+    %Outputs for orbiter
+    out.pos = pos;               %[km] Cartesian position vector
+    out.vel = vel;               %[km/s] Cartesian velocity vector
+    %out.ang = keps(:,5);         %[rad] True anomaly history
+    out.hchord = hchord;         %[km] Half chord length
   
 end
 
