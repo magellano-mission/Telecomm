@@ -70,5 +70,5 @@ out.P_W   = PW_r;                 %[W]   Received power raw
 out.dE    = out.P_W * dt;         %[J]   Received energy in time step
 out.CNR   = CNR;                  %[-]   Raw CNR power ratio
 out.CNRdB = CNRdB;                %[dB]  log10 of CNR power ratio
-out.rate = rate;                  %[bits/s] rate of useful information transfer
+out.datrat = rate;                  %[bits/s] rate of useful information transfer
 out.data = data;                  %[bit] volume of data transferred in time step

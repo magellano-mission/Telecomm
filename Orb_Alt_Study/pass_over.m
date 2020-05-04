@@ -1,9 +1,10 @@
-function [orb] = pass_over_power(frq,powt,powr,keps,lint,t,dt,gaint,gainr,title,T_s,BW,code)
+function [orb] = pass_over(go,frq,powt,powr,keps,lint,t,dt,gaint,gainr,title,T_s,BW,code)
 
 % Change nomenclature to range and range-rate to reduce confusion when
 % navigation is introduced
 
 %% INPUTS
+%go     - [-]       1 - run the case, 0 - don't run the case
 %frq    - [Hz]      Carrier wave frequency
 %powt   - [W]       Transmitted RF power
 %powr   - [W,W]     Minimum and maximum signal power limits of receiver
@@ -19,6 +20,12 @@ function [orb] = pass_over_power(frq,powt,powr,keps,lint,t,dt,gaint,gainr,title,
 %code.M - [-]       Max modulation efficiency
 %code.R - [-]       Error encoding rate (0.5 for turbo coding)
 %code.P - [str]     Polarisation of receiver and signal 'lin' or 'cir'
+
+%% GO / NO GO
+if go == 0
+    orb = NaN;
+    return   
+end
 
 %% GROUND USER STATES
 % Later this can just be changed to generic user, first need to think more
@@ -55,10 +62,15 @@ for i = 1:size(keps,1)
      orb(i).dE   = zeros(length(t),1);    %time step energy transmission
      orb(i).PdB  = NaN(length(t),1);      %received signal power
      orb(i).CNR  = NaN(length(t),1);      %CNR
-     orb(i).rate = zeros(length(t),1);    %time step data transmission
+     orb(i).datrat = zeros(length(t),1);  %time step data transmission
+     orb(i).rangrat = zeros(length(t),1); %time step data transmission
      
      for j=1:length(t)
         if orb(i).rng(j) < orb(i).hchord    %if the range between user and satellite is compatible with visibility
+            %calculate the range rate
+            orb_rangrat = dot(orb(i).rel(j),orb(i).vel(j));
+            grd_rangrat = dot(orb(i).rel(j),grd.vel(j));
+            orb(i).rangrat(j) = orb_rangrat + grd_rangrat;
             
             %identifying variables of the triangle then solving for angle C
             a = orb(i).rng(j);      %Range, orbiter to ground user
@@ -75,13 +87,14 @@ for i = 1:size(keps,1)
             orb(i).dE(j) = out.dE;
             orb(i).PdB(j) = out.PdB;
             orb(i).CNR(j) = out.CNRdB;
-            orb(i).rate(j) = out.rate;
+            orb(i).datrat(j) = out.datrat;
         else
             orb(i).rng(j) = NaN;    %if satellite is not visible, erase relative distance
+            orb(i).rangrat(j) = NaN;
         end
      end
      orb(i).cumE = cumsum(orb(i).dE,1); %vector for cumulative energy trans
-     orb(i).data = cumsum(orb(i).rate,1);
+     orb(i).data = cumsum(orb(i).datrat,1);
 end
 
 %% PLOTS
@@ -90,69 +103,96 @@ hold on
 for i = 1:length(orb)
      plot(t,rad2deg(orb(i).ele))
      xlabel('Time [s]')
+     xlim([t(1) t(end)])
      ylabel('Elevation [deg]')
+     ylim([0 90])
+     grid on
 end
 hold off
 
 subplot(3,3,2)
 hold on
 for i = 1:length(orb)
-     plot(t,orb(i).rng)
+     plot(t,orb(i).rng/1000)
      xlabel('Time [s]')
-     ylabel('Link Distance [m]')
+     xlim([t(1) t(end)])
+     ylabel('Range [km]')
+     grid on
 end
 hold off
 
 subplot(3,3,3)
 hold on
 for i = 1:length(orb)
-     plot(t,orb(i).dE)
+     plot(t,orb(i).rangrat/1000)
      xlabel('Time [s]')
-     ylabel('Received Power [W]')
+     xlim([t(1) t(end)])
+     ylabel('Range Rate [km/s]')
+     grid on
 end
 hold off
 
 subplot(3,3,4)
 hold on
 for i = 1:length(orb)
-     plot(t,orb(i).cumE)
+     plot(t,orb(i).dE)
      xlabel('Time [s]')
-     ylabel('Cumulative Energy [J]')
+     xlim([t(1) t(end)])
+     ylabel('Received Power [W]')
+     grid on
 end
-     %legend('200 km', '400 km', '600 km', '800 km','Location','northwest')
+hold off
 
 subplot(3,3,5)
 hold on
 for i = 1:length(orb)
-     plot(t,orb(i).PdB)
+     plot(t,orb(i).cumE)
      xlabel('Time [s]')
-     ylabel('Signal Power [dBW]')
-     ylim(powr)
+     xlim([t(1) t(end)])
+     ylabel('Cumulative Energy [J]')
+     grid on
 end
-
+    
 subplot(3,3,6)
 hold on
 for i = 1:length(orb)
-     plot(t,orb(i).CNR)
+     plot(t,orb(i).PdB)
      xlabel('Time [s]')
-     ylabel('CNR [dB]')
+     xlim([t(1) t(end)])
+     ylabel('Signal Power [dBW]')
+     ylim(powr)
+     grid on
 end
 
 subplot(3,3,7)
 hold on
 for i = 1:length(orb)
-     plot(t,orb(i).rate)
+     plot(t,orb(i).CNR)
      xlabel('Time [s]')
-     ylabel('Data Rate [bit/s]')
+     xlim([t(1) t(end)])
+     ylabel('CNR [dB]')
+     grid on
 end
-hold off
 
 subplot(3,3,8)
 hold on
 for i = 1:length(orb)
-     plot(t,orb(i).data)
+     plot(t,orb(i).datrat/1e6)
      xlabel('Time [s]')
-     ylabel('Cumulative Data [bits]')
+     xlim([t(1) t(end)])
+     ylabel('Data Rate [Mb/s]')
+     grid on
+end
+hold off
+
+subplot(3,3,9)
+hold on
+for i = 1:length(orb)
+     plot(t,orb(i).data/1e6)
+     xlabel('Time [s]')
+     xlim([t(1) t(end)])
+     ylabel('Cumulative Data [Mb]')
+     grid on
 end
 sgtitle(title)
 hold off
