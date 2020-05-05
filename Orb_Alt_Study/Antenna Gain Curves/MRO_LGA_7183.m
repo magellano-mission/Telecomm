@@ -1,4 +1,4 @@
-function [bor, ele] = MRO_LGA_7183()
+function [LGA_X] = MRO_LGA_7183(plot)
 % This function creates a spline curve of the dB gain versus angle off bore
 % axis for the MRO LGA operating at 7183 MHz
 
@@ -24,8 +24,5 @@ G_bor = [0 0;
 
 G_bor(:,2) = G_bor(:,2) + 8.8;
 G_bor(:,1) = deg2rad(G_bor(:,1));
-G_ele = G_bor;
-G_ele(:,2) = flip(G_ele(:,2));
-    
-bor = fit(G_bor(:,1),G_bor(:,2),'poly2');
-ele = fit(G_ele(:,1),G_ele(:,2),'poly2');
+LGA_X.lim = G_bor(end,1);
+LGA_X.bor = fit(G_bor(:,1),G_bor(:,2),'poly2');
