@@ -53,6 +53,7 @@ for i = 1:size(keps,1)
      recv(i).dis = sqrt(sum(recv(i).pos'.^2))';   %[m] orbiter ro Mars Centre distance
      recv(i).rng = sqrt(sum(recv(i).rel'.^2))';   %[m] range from orbiter to ground user
      recv(i).rangrat = gradient(recv(i).rng);     %[m/s] range rate from orbiter to ground user
+     recv(i).dopfrq = frq.*(1 - recv(i).rangrat./physconst('LightSpeed')) - frq;
      
      %Initialising blank vectors
      recv(i).ele  = NaN(length(t),1);      %local elevation
@@ -60,7 +61,7 @@ for i = 1:size(keps,1)
      recv(i).PdB  = NaN(length(t),1);      %received signal power
      recv(i).CNR  = NaN(length(t),1);      %CNR
      recv(i).datrat = zeros(length(t),1);  %time step data transmission
-     
+
      for j=1:length(t)
         if recv(i).rng(j) < recv(i).hchord    %if the range between user and satellite is compatible with visibility
             
@@ -96,6 +97,7 @@ for i = 1:size(keps,1)
         else
             recv(i).rng(j) = NaN;    %if satellite is not visible, erase relative distance
             recv(i).rangrat(j) = NaN;
+            recv(i).dopfrq(j) = NaN;
         end
      end
      recv(i).cumE = cumsum(recv(i).dE,1); %vector for cumulative energy trans
@@ -141,13 +143,24 @@ hold off
 subplot(3,3,4)
 hold on
 for i = 1:length(recv)
-     plot(t,recv(i).dE)
+     plot(t,recv(i).dopfrq/1000)
      xlabel('Time [s]')
      xlim([t(1) t(end)])
-     ylabel('Received Power [W]')
+     ylabel('Doppler Shift [kHz]')
      grid on
 end
 hold off
+
+%subplot(3,3,4)
+%hold on
+%for i = 1:length(recv)
+%     plot(t,recv(i).dE)
+%     xlabel('Time [s]')
+%     xlim([t(1) t(end)])
+%     ylabel('Received Power [W]')
+%     grid on
+%end
+%hold off
 
 subplot(3,3,5)
 hold on

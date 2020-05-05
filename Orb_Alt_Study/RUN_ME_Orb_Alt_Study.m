@@ -29,7 +29,7 @@ elec.Ts = T_amb*(10^(elec.F/10)-1);   %[K] System effective noise temperature
 
 %SDST specifications for X and Ka band baseline
 sdst.powr = [-188 -100];     %[dBW] Acceptable signal power range to feed SDST
-sdst.M = 16;                 %[bit/sym] Max modulation efficiency (BPS,QPS,etc)
+sdst.M = 8;                  %[bit/sym] Max modulation efficiency (BPS,QPS,etc)
 sdst.R = 0.5;                %[-] Error coding efficiency
 sdst.P = 'circ';             %[-]Polarisation of signal, 'circ' or 'lin'
 sdst.F = 2.5;                         %[dB] Noise Factor for SDST
@@ -51,14 +51,14 @@ lint = deg2rad(lint);       %degrees to radians
 
 %% CASE 1 - MRO/Curiosity UHF at 401.6 MHz
 frq_1 = 401.6e6;    %[Hz] carrier signal frequency
-powt_1 = 10;        %[W] ground user RF power emitted
+powt_1 = 20;        %[W] ground user RF power emitted
 BW_1   = 1e6;       %[Hz] Bandwidth
 point = [0 0];      %[tran recv] 1 if antenna steered, 0 if not
 [UHF] = pass_over(1,1,frq_1,powt_1,elec,keps,lint,t,dt,point,UHF_G,UHF_G,'MRO/Curiosity UHF',BW_1);
 
 %% CASE 2 - Curiosity HGA sending to MSL MGA at 7183 MHz
 frq_2 = 7183e6;     %[Hz] carrier signal frequency
-powt_2 = 10;        %[W] ground user RF power emitted
+powt_2 = 20;        %[W] ground user RF power emitted
 BW_2 = 1e6;         %[Hz] Bandwidth
 point = [1 0];      %[tran recv] 1 if antenna steered, 0 if not
 [HGA] = pass_over(2,1,frq_2,powt_2,sdst,keps,lint,t,dt,point,HGA_X,MGA_X,'Curiosity HGA to MSL MGA X-Band',BW_2);
