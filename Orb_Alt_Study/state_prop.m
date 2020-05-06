@@ -1,22 +1,33 @@
-function [out] = state_prop(type,state,time)
-%Function to propagate the states of surface and orbital vehicles over a
-% given time period. A circular orbit is assumed for orbital vehicles.
-% Functionality may be added later to allow surface user velocity.
-
-% States are populated using a NON-ROTATING MARS CENTRED REFERENCE FRAME
-% Rotations are defined positive counter-clockwise
+function [out] = state_prop(type,state,time,sit)
+%% PURPOSE
+%This function propagates the states of surface and orbital vehicles over a
+%given time period. Circular orbits are assumed. A NON-ROTATING Mars centred 
+%reference frame is used with rotations defined positive counter-clockwise.
+%Functionality can be added to allow elliptical orbits and non-zero surface
+%velocities.
 
 %% INPUTS
 %type      - [str] 'ground' or 'orbiter'
 %state     - [rad & km] initial latitude and longitude for ground users, or
              %vector of initial keplerian elements for orbiters
 %time      - [s] time vector over which to evaluate
+%cas       - [-] 1 - Mars ground user to Mars orbiter, 2 - Mars orbiter to
+                    %Mars orbiter, 3 - Mars to Earth
+                    
+%% CASE VARIABLES                   
+switch sit
+    case 1 
+        r_mars = astroConstants(24);      %[km] radius at surface of Mars
+        mu     = astroConstants(14);      %[km^3/s^2] Mars gravitational parameter
+        mars_day = 88620;                 %[s] length of Mars day
+    case 2
+        mu     = astroConstants(14);      %[km^3/s^2] Mars gravitational parameter
+    case 3
+        mu = astroConstants(4);           %[km^3/s^2] Sun gravitational parameter
+end
 
-r_mars = astroConstants(24);      %[km] radius at surface of Mars
-mu     = astroConstants(14);      %[km^3/s^2] Mars gravitational parameter
-mars_day = 88620;                 %[s]
   
-%% Surface User
+%% Mars Surface User
 if ismember("ground",type) == 1
     n = 2*pi / mars_day;          %[rad/s] Mars angular velocity about axis
     lat = state(1);               %[rad] user latitude
@@ -73,16 +84,16 @@ if ismember("orbiter",type) == 1
         vel(i,:) = v';
     end
     
-    %calculate the half-chord length for checking orbiter visibility
-    theta = 2*acos(r_mars/r);    %[rad] chord central angle  
-    chord = 2*r*sin(theta/2);    %[km] chord length
-    hchord = chord/2;            %[m] halve to get one-way distance
-    
     %Outputs for orbiter
     out.pos = pos;               %[km] Cartesian position vector
     out.vel = vel;               %[km/s] Cartesian velocity vector
-    %out.ang = keps(:,5);         %[rad] True anomaly history
-    out.hchord = hchord;         %[km] Half chord length
-  
+    
+    if sit == 1
+        %calculate the half-chord length for checking orbiter visibility
+        theta = 2*acos(r_mars/r);    %[rad] chord central angle  
+        chord = 2*r*sin(theta/2);    %[km] chord length
+        hchord = chord/2;            %[m] halve to get one-way distance
+        out.hchord = hchord;         %[km] Half chord length
+    end
 end
 

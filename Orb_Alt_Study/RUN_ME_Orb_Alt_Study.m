@@ -1,5 +1,9 @@
-clearvars; clc
+%% SET UP
+clearvars; clc; clf;
 format compact
+addpath('Antenna Gain Curves')
+addpath('Supporting Functions')
+tic
 
 %% NOTES
 % Have included some basic dB margins in zfun_link_rate. They need to be
@@ -11,13 +15,16 @@ format compact
 [LGA_X] = MRO_LGA_7183();    %[dBi] MRL X band LGA  curve
 [MGA_X] = MSL_MGA_7183();    %[dBi] MSL X band MGA curve
 [HGA_X] = Cur_HGA_7183();    %[dBi] Curiosity X band HGA curve
+[S_HGA_X] = MRO_HGA_7183();
+[DSN_MGA_X] = DSN_34m_7183();
 
+%Environment parameters
 T_amb = 290;       %[K] Assumed ambient temperature (STANDARD - REVISIT)
 T_ant = 20;        %[K] Assumed antenna temperature in space (REVISIT)
-
-dt = 10;                     %[s] time step
-mars_day = 88620;            %[s] length of Mars day
-t = 0: dt : 1*mars_day;      %[s] time span being analysed
+dt = 10;                  %[s] time step
+t = 0: dt : 88620/2;      %[s] Mars day = 88620, Earth day = 86400
+a_Earth = astroConstants(2);
+a_Mars  = 1.52*a_Earth;
 
 %Electra specifications for UHF baseline
 elec.powr = [-170 -100];    %[dBW] Acceptable signal power range to feed Electra
@@ -33,34 +40,76 @@ sdst.M = 8;                  %[bit/sym] Max modulation efficiency (BPS,QPS,etc)
 sdst.R = 0.5;                %[-] Error coding efficiency
 sdst.P = 'circ';             %[-]Polarisation of signal, 'circ' or 'lin'
 sdst.F = 2.5;                         %[dB] Noise Factor for SDST
-sdst.Ts = T_amb*(10^(sdst.F/10)-1);   %[K] System effective noise temperature    
+sdst.Ts = T_amb*(10^(sdst.F/10)-1);   %[K] System effective noise temperature
 
-%Orbiter PSEUDO-Keplerian elements (ALTITUDE, NOT SEMI-MAJOR AXIS)
-%Create a constellation by entering the initial Keplerian elements of all orbiters
-keps = [2000,0,15,0,0,0;      %[km,deg,deg,deg,deg,deg]
-        2000,0,15,90,0,0;     %[a,e,i,OM,om,th,mu]
-        2000,0,15,180,0,0;
-        2000,0,15,270,0,0;
-        17032,0,0,0,0,0];
-keps(:,2:6) = deg2rad(keps(:,2:6));           %degrees to radians
-keps(:,1)   = keps(:,1) + astroConstants(24); %altitude to radius in [km]
+%DSN specifications for X and Ka band baseline
+dsn.powr = [-300 -50];
+dsn.M = 8;
+dsn.R = 0.5;
+dsn.P = 'circ';
+dsn.Ts = 20;
 
-%Ground user initial position
-lint = [10,0];               %[deg lat, deg long]
-lint = deg2rad(lint);       %degrees to radians
 
 %% CASE 1 - MRO/Curiosity UHF at 401.6 MHz
-frq_1 = 401.6e6;    %[Hz] carrier signal frequency
-powt_1 = 20;        %[W] ground user RF power emitted
-BW_1   = 1e6;       %[Hz] Bandwidth
-point = [0 0];      %[tran recv] 1 if antenna steered, 0 if not
-[UHF] = pass_over(1,1,frq_1,powt_1,elec,keps,lint,t,dt,point,UHF_G,UHF_G,'MRO/Curiosity UHF',BW_1);
+ustat1 = [10,0];              %[deg lat, deg long]
+ustat1 = deg2rad(ustat1);     %degrees to radians
+keps1 = [200,0,90,0,0,0;     %[altitude km,deg,deg,deg,deg,deg]
+        200,0,90,90,0,0;     %[a,e,i,OM,om,th,mu]
+        200,0,90,180,0,0;
+        200,0,90,270,0,0];
+keps1(:,2:6) = deg2rad(keps1(:,2:6));           %degrees to radians
+keps1(:,1)   = keps1(:,1) + astroConstants(24); %altitude to radius in [km]
+sit1 = 1;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter 
+                   % to Mars orbiter, 3 - Mars to Earth (generic)
+cas1 = 1;          %[-] case number
+frq1 = 401.6e6;    %[Hz] carrier signal frequency
+powt1 = 8.5;        %[W] ground user RF power emitted
+BW1   = 1e6;       %[Hz] Bandwidth
+point1 = [0 1];    %[tran recv] 1 - antenna steered, 0 - not steered
+%Run the function and output graphs and totals
+[UHF_Surf,tots1] = pass_over(sit1,cas1,frq1,powt1,elec,keps1,ustat1,t*2,dt,point1,...
+                  UHF_G,UHF_G,'Curiosity UHF to MRO UHF',BW1,1);
+disp('Study 1 totals')
+disp(tots1)
 
-%% CASE 2 - Curiosity HGA sending to MSL MGA at 7183 MHz
-frq_2 = 7183e6;     %[Hz] carrier signal frequency
-powt_2 = 20;        %[W] ground user RF power emitted
-BW_2 = 1e6;         %[Hz] Bandwidth
-point = [1 0];      %[tran recv] 1 if antenna steered, 0 if not
-[HGA] = pass_over(2,1,frq_2,powt_2,sdst,keps,lint,t,dt,point,HGA_X,MGA_X,'Curiosity HGA to MSL MGA X-Band',BW_2);
+%% CASE 2 - Orbiter to Orbiter at 401.6 MHz
+ustat2 = [200,0,0,0,0,0];
+keps2 = [2000,0,15,0,0,0;     %[altitude km,deg,deg,deg,deg,deg]
+        2000,0,15,90,0,0;     %[a,e,i,OM,om,th,mu]
+        2000,0,15,180,0,0;
+        2000,0,15,270,0,0];
+ustat2(:,2:6) = deg2rad(ustat2(:,2:6));   %degrees to radians                            
+keps2(:,2:6) = deg2rad(keps2(:,2:6));    
+ustat2(:,1)  = ustat2(:,1) + astroConstants(24);    %altitude to radius in [km]
+keps2(:,1)   = keps2(:,1) + astroConstants(24); 
+sit2 = 2;          %[-] 1 - Mars ground to Mars orbiter, %2 - Mars orbiter 
+                   % to Mars orbiter, 3 - Mars to Earth (generic)
+cas2 = 2;          %[-] case number
+frq2 = 401.6e6;     %[Hz] carrier signal frequency
+powt2 = 30;        %[W] ground user RF power emitted
+BW2 = 1e6;         %[Hz] Bandwidth
+point2 = [0 0];    %[tran recv] 1 - antenna steered, 0 - not steered
+%Run the function and output graphs and totals
+[UHF_Orb,tots2] = pass_over(sit2,cas2,frq2,powt2,elec,keps2,ustat2,t,dt,point2,...
+                  UHF_G,UHF_G,'Orbiter to Orbiter UHF',BW2,1);
+disp('Study 2 totals')
+disp(tots2) 
 
-%% CASE 3 - Something to do with Phased array antennas
+%% CASE 3 - Mars to Earth
+ustat3 = [a_Mars,0,0,0,pi,0];
+keps3 = [a_Earth,0,0,0,0,0];     %[km,deg,deg,deg,deg,deg]
+                                %[a,e,i,OM,om,th,mu]
+sit3 = 3;          %[-] 1 - Mars ground to Mars orbiter, %2 - Mars orbiter 
+                   % to Mars orbiter, 3 - Mars to Earth (generic)
+cas3 = 3;          %[-] case number
+frq3 = 8440e6;     %[Hz] carrier signal frequency
+powt3 = 100;        %[W] ground user RF power emitted
+BW3 = 5e5;         %[Hz] Bandwidth
+point3 = [1 1];    %[tran recv] 1 - antenna steered, 0 - not steered
+%Run the function and output graphs and totals
+[X_ME,tots3] = pass_over(sit3,cas3,frq3,powt3,dsn,keps3,ustat3,t,dt,point3,...
+                  S_HGA_X,DSN_MGA_X,'Mars to Earth',BW3,1);
+disp('Study 3 totals')
+disp(tots3) 
+toc
+%% CASE 3 - Something to do with Phased array antennas ???
