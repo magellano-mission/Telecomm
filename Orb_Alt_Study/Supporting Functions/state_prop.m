@@ -11,7 +11,7 @@ function [out] = state_prop(type,state,time,sit)
 %state     - [rad & km] initial latitude and longitude for ground users, or
              %vector of initial keplerian elements for orbiters
 %time      - [s] time vector over which to evaluate
-%cas       - [-] 1 - Mars ground user to Mars orbiter, 2 - Mars orbiter to
+%sit       - [-] 1 - Mars ground user to Mars orbiter, 2 - Mars orbiter to
                     %Mars orbiter, 3 - Mars to Earth
                     
 %% CASE VARIABLES                   
@@ -21,6 +21,7 @@ switch sit
         mu     = astroConstants(14);      %[km^3/s^2] Mars gravitational parameter
         mars_day = 88620;                 %[s] length of Mars day
     case 2
+        r_mars = astroConstants(24);      %[km] radius at surface of Mars
         mu     = astroConstants(14);      %[km^3/s^2] Mars gravitational parameter
     case 3
         mu = astroConstants(4);           %[km^3/s^2] Sun gravitational parameter
@@ -94,6 +95,12 @@ if ismember("orbiter",type) == 1
         chord = 2*r*sin(theta/2);    %[km] chord length
         hchord = chord/2;            %[m] halve to get one-way distance
         out.hchord = hchord;         %[km] Half chord length
+    end
+    
+    if sit == 2
+        %calculate the maximum visibility angle w.r.t. Mars
+        ang = asin(r_mars/r);
+        out.ang = ang;
     end
 end
 

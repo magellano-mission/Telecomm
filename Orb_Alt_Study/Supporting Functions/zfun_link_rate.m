@@ -26,8 +26,8 @@ if frq < 500e6      %UHF frequency range
             mrg_atm = -0.5;
         case 2      %No losses (S/C to S/C)
             mrg_atm = 0;
-        case 3      %Earth atmospheric losses (NEED TO CHECK)
-            mrg_atm = -0.5;
+        case 3      %Earth rain fade (NEED TO CHECK)
+            mrg_atm = -3;
     end
 end
 if frq > 4e9 && frq < 12e9 %X band frequency range
@@ -36,7 +36,7 @@ if frq > 4e9 && frq < 12e9 %X band frequency range
             mrg_atm = - 1.0;
         case 2      %No losses (S/C to S/C)
             mrg_atm = 0;
-        case 3      %Earth atmospheric losses (NEED TO CHECK)
+        case 3      %Earth rain fade (NEED TO CHECK)
             mrg_atm = -3;
     end
 end
