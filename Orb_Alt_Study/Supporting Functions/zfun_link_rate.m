@@ -1,18 +1,19 @@
-function [out] = zfun_link_rate(frq,rang,powt,hard,G_t,G_r,BW,dt,sit)
+function [out] = zfun_link_rate(frq,rang,powt,cont,G_t,G_r,dt,sit)
 %% PURPOSE
 %This function takes inputs relating to the link and hardware, calculates a
-%link budget and then assigns a data rate based on the CNR and hardware
+%link budget and then assigns a data rate based on the CNR and contware
 %capabilities
 
 %% INPUTS
 %frq       - [Hz]  Carrier wave frequency
 %rang      - [m]   Transmission range
 %powt      - [W]   Transmitted RF power
-%hard.powr - [W,W] Minimum and maximum signal power limits of receiver
-%hard.M    - [-,-] Range of modulation efficiencies
-%hard.P    - [-]   Polarisation of receiver and signal 'lin' or 'cir'
-%hard.R    - [-]   Error encoding rate (0.5 for turbo coding)
-%hard.Ts   - [K]   Effective noise temperature of the receiving system
+%cont.powr - [W,W] Minimum and maximum signal power limits of receiver
+%cont.M    - [-,-] Range of modulation efficiencies
+%cont.P    - [-]   Polarisation of receiver and signal 'lin' or 'cir'
+%cont.R    - [-]   Error encoding rate (0.5 for turbo coding)
+%cont.BW   - [Hz]  Bandwidth of receiving module
+%cont.Ts   - [K]   Effective noise temperature of the receiving system
 %G_t       - [dBi] Transmitting antenna gain (elevation included)
 %G_r       - [dBi] Receiving antenna gain (elevation included)
 %BW        - [Hz]  Received bandwidth being considered 
@@ -36,8 +37,18 @@ if frq > 4e9 && frq < 12e9 %X band frequency range
             mrg_atm = - 1.0;
         case 2      %No losses (S/C to S/C)
             mrg_atm = 0;
-        case 3      %Earth rain fade (NEED TO CHECK)
+        case 3      %Earth X rain fade (NEED TO CHECK)
             mrg_atm = -3;
+    end
+end
+if frq > 30e9 && frq < 40e9 %Ka band frequency range
+    switch sit
+        case 1      %Martian atmospheric losses
+            mrg_atm = - 1.0;
+        case 2      %No losses (S/C to S/C)
+            mrg_atm = 0;
+        case 3      %Earth Ka rain fade (NEED TO CHECK)
+            mrg_atm = -4;
     end
 end
 
@@ -56,61 +67,33 @@ pathdB_L = -20*log10(4*pi*rang/lambda);  %[dB] Propagation Loss
 PdB_r = PdB_t + G_t + pathdB_L + G_r + mrg_op + mrg_bo + mrg_atm + mrg_pol;
 PW_r =  powt*10^(PdB_r/10);              %[W] Received signal power
 
-%Checking if received signal power is within hardware limits
-if PdB_r >= hard.powr(1) && PdB_r <= hard.powr(2)
+%Checking if received signal power is within contware limits
+if PdB_r >= cont.powr(1) && PdB_r <= cont.powr(2)
     %Calculating CNR for the given bandwidth
-    n0_W = (physconst('Boltzmann')*(hard.Ts)*BW);
+    n0_W = (physconst('Boltzmann')*(cont.Ts)*cont.BW);
     n0_dB = 10*log10(n0_W);
-    CNRdB = PdB_r - n0_dB;
+    CNRdB = PdB_r - n0_dB;    
+    CNR = 10^(CNRdB/10);         %converting CNR to linear ratio
+    
+    % Hartley's law with error coding efficiency factor R included to find
+    % the maximum possible useful bit-rate for the given contware
+    fb = 2 * cont.BW * log2(cont.M) * cont.R;  %[bit/s]
+    
+    EbNo = CNR * cont.BW / fb;         %Linear bit energy to noise energy ratio
+    ENdB = 10*log10(EbNo);        %Converted to log form
+    
+    switch cont.M
+        case 2          %BPSK coding (10.6 & 10.6 uncoded theoretical limits)
+            [rate] = bitter_rate(CNR,ENdB,3,fb,1000,cont);    
+        case 4          %QPSK coding (13.6 & 10.6 uncoded theoretical limits)
+            [rate] = bitter_rate(CNR,ENdB,4,fb,1000,cont);
+    end
 else
     %Otherwise transmission is not possible
     CNRdB = NaN;
+    rate = 0;
 end
 
-%Finding the best possible symbol and bit rates for the given CNR in dB
-% CNRdB values from table in Satellite Communication book
-
-if CNRdB < 3 || isnan(CNRdB)
-    M = 0;          %no data transmission
-    R =0;           %no data transmission
-end
-if CNRdB >= 3 && CNRdB < 11
-    M = 2;          %BPSK
-    R = hard.R;     %turbo coding applied for error correction
-end
-if CNRdB >= 11 && CNRdB < 14
-    M = 2;          %BPSK
-    R = 1;          %no error correction coding
-end
-if CNRdB >= 14 && CNRdB < 19
-    if hard.M >= 4
-    M = 4;          %QPSK
-    R = 1;          %no error correction coding
-    else
-        M= hard.M;
-        R = 1;
-    end
-end
-if CNRdB >= 19 && CNRdB < 24
-    if hard.M >= 8
-    M = 8;          %8PSK
-    R = 1;          %no error correction coding
-    else
-        M= hard.M;
-        R = 1;
-    end
-end
-if CNRdB >= 24
-    if hard.M >= 16
-    M = 16;         %16PSK (sdst can do 100 Mb/s)
-    R = 1;          %no error correction coding
-    else
-        M= hard.M;
-        R = 1;
-    end
-end
-
-rate = R * M * BW;  %[bits/s] rate of useful information transfer
 data = rate*dt;     %[bits] volume of data transferred in time step
  
 %% OUTPUT

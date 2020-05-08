@@ -12,12 +12,13 @@ addpath('Output Files')
 
 %% SHARED INPUTS
 %Antenna gain curves vs boresight angle and angle limit information
-[UHF_G] = MRO_UHF_401_6();   %[dBi] MRO / Curiosity UHF antenna curve
-%[LGA_X] = MRO_LGA_7183();    %[dBi] MRL X band LGA  curve
-%[MGA_X] = MSL_MGA_7183();    %[dBi] MSL X band MGA curve
-%[HGA_X] = Cur_HGA_7183();    %[dBi] Curiosity X band HGA curve
-%[S_HGA_X] = MRO_HGA_7183();  %[dBi] MRO X band HGA curve
-%[DSN_MGA_X] = DSN_34m_7183(); %[dBi] DSN 34m dish gain (curve not available)
+[UHF_G] = MRO_UHF_401_6(1);   %[dBi] MRO / Curiosity UHF antenna curve
+%[UHF_I] = Improved_UHF_401_6(0);   %[dBi] More directional UHF antenna
+%[LGA_X] = MRO_LGA_7183(0);    %[dBi] MRL X band LGA  curve
+%[MGA_X] = MSL_MGA_7183(0);    %[dBi] MSL X band MGA curve
+%[HGA_X] = Cur_HGA_7183(0);    %[dBi] Curiosity X band HGA curve
+%[S_HGA_X] = MRO_HGA_7183(0);  %[dBi] MRO X band HGA curve
+%[DSN_MGA_X] = DSN_34m_7183(0); %[dBi] DSN 34m dish gain (curve not available)
 
 %Environment parameters
 T_amb = 290;       %[K] Assumed ambient temperature (STANDARD - REVISIT)
@@ -29,14 +30,16 @@ a_Mars  = 1.52*a_Earth;
 elec.powr = [-170 -100];    %[dBW] Acceptable signal power range to feed Electra
 elec.M = 4;                 %[bit/sym] Max modulation efficiency (BPS,QPS,etc)
 elec.R = 0.5;               %[-] Error coding efficiency
+elec.BW = 1e6;              %[Hz] Electra bandwidth
 elec.P = 'circ';            %[-]Polarisation of signal, 'circ' or 'lin'
 elec.F = 3.9;                         %[dB] Noise Factor for Electra (half-duplex)
 elec.Ts = T_amb*(10^(elec.F/10)-1);   %[K] System effective noise temperature
 
 %SDST specifications for X and Ka band baseline
 sdst.powr = [-188 -100];     %[dBW] Acceptable signal power range to feed SDST
-sdst.M = 8;                  %[bit/sym] Max modulation efficiency (BPS,QPS,etc)
+sdst.M = 4;                  %[bit/sym] Max modulation efficiency (BPS,QPS,etc)
 sdst.R = 0.5;                %[-] Error coding efficiency
+sdst.BW = 15e6;             %[Hz] SDST bandwidth
 sdst.P = 'circ';             %[-]Polarisation of signal, 'circ' or 'lin'
 sdst.F = 2.5;                         %[dB] Noise Factor for SDST
 sdst.Ts = T_amb*(10^(sdst.F/10)-1);   %[K] System effective noise temperature
@@ -69,7 +72,6 @@ t = 0: dt : sols*88620; %[s] Mars day = 88620, Earth day = 86400
 sit = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter 
                   % to Mars orbiter, 3 - Mars to Earth (generic)
 frq = 401.6e6;    %[Hz] carrier signal frequency
-BW   = 1e6;       %[Hz] Bandwidth
 powt = 40;        %[W] ground user RF power emitted
 point = [0 0];    %[tran recv] 1 - antenna steered, 0 - not steered
 
@@ -78,18 +80,23 @@ tic
 out = struct;
 res = zeros(length(a),7);
 for i = 1:length(a)
-[out(i).all,tots] = pass_over(1,sit,1,frq,BW,powt,elec,keps(i,:),ustat,t,dt,point,...
+[out(i).all,tots] = pass_over(1,sit,1,frq,powt,elec,keps(i,:),ustat,t,dt,point,...
                   UHF_G,UHF_G,'Orbiter to Orbiter UHF',0);
     %storing totals 
     res(i,:) = [altitudes(i) tots(1) tots(2) tots(3) tots(4) tots(5) sols]; 
                             %[kJ]    [uJ]    [Gb]    vis     con      
+    %counter
+    perc = 100*i/length(a);
+    disp(perc)
 end
+S(1) = load('gong');
+sound(S(1).y,S(1).Fs)
 toc
 
 %% SAVE RESULTS
 %save results and variables to output file for post-processing convenience
 save('Output Files\UHF_comms_trends_sit2_out','out','res','ustat','keps',...
-     'dt','sols','sit','frq','BW','powt','point','t')
+     'dt','sols','sit','frq','powt','point','t')
 
 %% POST-PROCESSING
 %Load information from file if required 
@@ -145,6 +152,6 @@ sols_plot = 1;
 t_plot = 0:dt_plot:88620*sols_plot;
 
 if log == 1
-[a,~] = pass_over(1,sit,2,frq,BW,powt,elec,keps(row,:),ustat,t_plot,dt_plot,point,...
+[a,~] = pass_over(1,sit,2,frq,powt,elec,keps(row,:),ustat,t_plot,dt_plot,point,...
                   UHF_G,UHF_G,'Detailed Behaviour',1);
 end

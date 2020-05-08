@@ -1,23 +1,23 @@
-function [UHF] = MRO_UHF_401_6(plotting)
+function [UHF] = Improved_UHF_401_6(plotting)
 % This function creates spline curves of the dB gain versus angle off bore
 % axis and elevation angle for the MRO and Curiosity UHF antennas 
 % transmitting at 401.6 MHz
 
-G_bor = [0 2.1;
-    5 2.2;
-    10 2.2;
-    15 2.2;
-    20 2.2;
-    25 2.3;
-    30 2.4;
-    35 2.1;
-    40 1.6;
-    45 1.2
-    50 0.5;
-    55 -0.5;
-    60 -1.0;
-    65 -2.0;
-    70 -2.8];
+G_bor = [0 5;
+    5 4.9;
+    10 4.6;
+    15 4.2;
+    20 3.5;
+    25 3.0;
+    30 2.3;
+    35 1.3;
+    40 0.3;
+    45 -0.7
+    50 -2.0;
+    55 -3.5;
+    60 -4.9;
+    65 -6.4;
+    70 -8.0];
 
 if plotting == 1
     UHF.plotting = fit(G_bor(:,1),G_bor(:,2),'smoothingspline');

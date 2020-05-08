@@ -1,12 +1,10 @@
-function [recv,res] = pass_over(go,sit,num,frq,BW,powt,hard,keps,ustat,t,dt, ...
-                            point,gaint,gainr,title,plots)
+function [recv,res] = pass_over(sit,frq,powt,hard,keps,ustat,t,dt,plots)
 %% PURPOSE
 %This function takes inputs about the transmission method, hardware,
 %spacecraft, land vehicles and planets being considered and reports plots
 %and total values for some criteria.
 
 %% INPUTS
-%num    - [-]       Case number
 %sit    - [-]       1 - Mars ground to orbiter, 2 - Mars orbiter to
                     %orbiter, 3 - Mars to Earth
 %frq    - [Hz]      Carrier wave frequency
@@ -17,19 +15,13 @@ function [recv,res] = pass_over(go,sit,num,frq,BW,powt,hard,keps,ustat,t,dt, ...
 %       - [km,rad] OR Keplerian elements for orbital vehicles or planets
 %t      - [s]       Vector of time span to be analysed
 %dt     - [s]       Time step
-%gaint  - [dBi,rad] Gain vs angle curve of transmission antenna
-%gainr  - [dBi,rad] Gain vs angle curve of transmission antenna
-%title  - [str]     Title for plot window
+%hard.gaint  - [dBi,rad] Gain vs angle curve of transmission antenna
+%hard.gainr  - [dBi,rad] Gain vs angle curve of transmission antenna
 %hard.Ts- [K]       Effective noise temperature of the receiving system
-%BW     - [Hz]      Receiver bandwidth (MAY MAKE THIS DYNAMIC IN FUTURE)
+%hard.BW- [Hz]      Receiver bandwidth (MAY MAKE THIS DYNAMIC IN FUTURE)
 %hard.M - [-]       Max modulation efficiency
 %hard.R - [-]       Error encoding rate (0.5 for turbo coding)
 %hard.P - [str]     Polarisation of receiver and signal 'lin' or 'cir'
-
-if go == 0
-    recv = NaN;
-    return
-end
 
 %% TRANSMITTER STATES
 if sit == 1     %Transmitter on Mars surface
@@ -129,25 +121,25 @@ for i = 1:size(keps,1)
             
             
             %Find gain of transmission antenna
-            switch point(1)
+            switch hard.point(1)
                 case 0          %transmission antenna is unpointed
                     borang = abs(recv(i).ele(j) - pi/2);
-                    gt_el = gaint.bor(borang);    %[dBi]
+                    gt_el = hard.gaint.bor(borang);    %[dBi]
                 case 1          %transmission antenna is pointed
-                    gt_el = gaint.bor(0);
+                    gt_el = hard.gaint.bor(0);
             end
             
             %Find gain of receiver antenna
-            switch point(2)
+            switch hard.point(2)
                 case 0          %receiver antenna is unpointed
                     borang = abs(recv(i).ele(j)-pi/2);
-                    gr_el = gainr.bor(borang);    %[dBi]
+                    gr_el = hard.gainr.bor(borang);    %[dBi]
                 case 1          %receiver antenna is pointed
-                    gr_el = gainr.bor(0);
+                    gr_el = hard.gainr.bor(0);
             end
             
             %Calculate the energy and data transmitted between elements
-            [out] = zfun_link_rate(frq,a,powt,hard,gt_el,gr_el,BW,dt,sit);
+            [out] = zfun_link_rate(frq,a,powt,hard.cont,gt_el,gr_el,dt,sit);
             recv(i).dE(j) = out.dE;
             recv(i).PdB(j) = out.PdB;
             recv(i).CNR(j) = out.CNRdB;
@@ -178,7 +170,6 @@ res(5) = cnt.*dt / 3600;            %[hrs] total downlink time
 %% PLOTS ('plots' = 1 if plots are required)
 if plots == 1
 
-figure(num)
 subplot(3,3,1)
 hold on
 for i = 1:length(recv)
@@ -252,7 +243,7 @@ for i = 1:length(recv)
      xlabel('Time [hrs]')
      xlim([0 t(end)/3600])
      ylabel('Signal Power [dBW]')
-     ylim(hard.powr)
+     ylim(hard.cont.powr)
      grid on
 end
 
@@ -286,6 +277,5 @@ for i = 1:length(recv)
      ylabel('Cumulative Data [Gb]')
      grid on
 end
-sgtitle(title)
 hold off
 end
