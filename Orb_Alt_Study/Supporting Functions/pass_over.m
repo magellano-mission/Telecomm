@@ -86,6 +86,7 @@ for i = 1:size(keps,1)
      recv(i).PdB  = NaN(length(t),1);      %received signal power
      recv(i).CNR  = NaN(length(t),1);      %CNR
      recv(i).datrat = zeros(length(t),1);  %time step data transmission
+     recv(i).data = zeros(length(t),1);
 
      for j=1:length(t)
          switch sit     %Visibility test
@@ -113,50 +114,56 @@ for i = 1:size(keps,1)
                     b = tran.dis(j);         %Distance, Mars centre to transmitting orbiter
                     c = recv(i).dis(j);      %Distance, Mars centre to receiving orbiter
                     C = acos((a^2 + b^2 -c^2)/(2*a*b));
-                    recv(i).ele(j) = abs(C - pi/2);  %[rad] convert elevation to an angle w.r.t bore axis
+                    recv(i).ele(j) = C - pi/2;  %[rad] convert elevation to an angle w.r.t bore axis
                 case 3
                     recv(i).ele(j) = pi/2;
                     a = recv(i).rng(j);
             end
             
+            % Mainly for case 2, checking that the higher orbiter is within
+            % view of the upper/rear of the lower orbiter
+            if recv(i).ele(j) > 0 && recv(i).ele(j) < pi
             
-            %Find gain of transmission antenna
-            switch hard.point(1)
-                case 0          %transmission antenna is unpointed
-                    borang = abs(recv(i).ele(j) - pi/2);
-                    gt_el = hard.gaint.bor(borang);    %[dBi]
-                case 1          %transmission antenna is pointed
-                    gt_el = hard.gaint.bor(0);
+                %Find gain of transmission antenna
+                switch hard.point(1)
+                    case 0          %transmission antenna is unpointed
+                        borang = abs(recv(i).ele(j) - pi/2);
+                        gt_el = hard.gaint.bor(borang);    %[dBi]
+                    case 1          %transmission antenna is pointed
+                        gt_el = hard.gaint.bor(0);
+                end
+            
+                %Find gain of receiver antenna
+                switch hard.point(2)
+                    case 0          %receiver antenna is unpointed
+                        borang = abs(recv(i).ele(j)-pi/2);
+                        gr_el = hard.gainr.bor(borang);    %[dBi]
+                    case 1          %receiver antenna is pointed
+                        gr_el = hard.gainr.bor(0);
+                end
+            
+                %Calculate the energy and data transmitted between elements
+                [out] = zfun_link_rate(frq,a,powt,hard.cont,gt_el,gr_el,dt,sit);
+                recv(i).dE(j) = out.dE;
+                recv(i).PdB(j) = out.PdB;
+                recv(i).CNR(j) = out.CNRdB;
+                recv(i).datrat(j) = out.datrat;
+                recv(i).data(j) = out.data;
+                if recv(i).datrat(j) > 0
+                    cnt = cnt + 1;
+                end 
             end
             
-            %Find gain of receiver antenna
-            switch hard.point(2)
-                case 0          %receiver antenna is unpointed
-                    borang = abs(recv(i).ele(j)-pi/2);
-                    gr_el = hard.gainr.bor(borang);    %[dBi]
-                case 1          %receiver antenna is pointed
-                    gr_el = hard.gainr.bor(0);
-            end
-            
-            %Calculate the energy and data transmitted between elements
-            [out] = zfun_link_rate(frq,a,powt,hard.cont,gt_el,gr_el,dt,sit);
-            recv(i).dE(j) = out.dE;
-            recv(i).PdB(j) = out.PdB;
-            recv(i).CNR(j) = out.CNRdB;
-            recv(i).datrat(j) = out.datrat;
-            if recv(i).datrat(j) > 0
-                cnt = cnt + 1;
-            end
         else    %Visibility requirements are not satisfied
             recv(i).rng(j) = NaN;
             recv(i).rangrat(j) = NaN;
             recv(i).dopfrq(j) = NaN;
         end
      end
-     recv(i).cumE = cumsum(recv(i).dE,1);       %cumulative RF energy transmitted per orbiter
+     recv(i).cumE = cumsum(recv(i).dE);       %cumulative RF energy transmitted per orbiter
      sumEner = sumEner + recv(i).cumE(end);     %RF energy transmitted to the whole constellation
-     recv(i).data = cumsum(recv(i).datrat,1);   %cumulative data transmitted per orbiter
-     sumData = sumData + recv(i).data(end);     %cumulative data transmitted to whole constellation
+     recv(i).cumDat = cumsum(recv(i).data);   %cumulative data transmitted per orbiter
+     sumData = sumData + recv(i).cumDat(end);   %cumulative data transmitted to whole constellation
 end
 %% totals - CUMULATIVE OUTPUTS
 res(1) = (cnt.*dt.*powt)/1e3;       %[kJ] total energy consumed
@@ -271,7 +278,7 @@ hold off
 subplot(3,3,9)
 hold on
 for i = 1:length(recv)
-     plot(t/3600,recv(i).data/1e9)
+     plot(t/3600,recv(i).cumDat/1e9)
      xlabel('Time [hrs]')
      xlim([0 t(end)/3600])
      ylabel('Cumulative Data [Gb]')

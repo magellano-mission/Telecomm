@@ -30,7 +30,7 @@ sit = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars
 frq = 8490e6;    %[Hz] carrier signal frequency
 powt = 40;        %[W] ground user RF power emitted
 
-hard = sys_hard('PAX','PAX','sdst',290,[0 0]);
+hard = sys_hard('UHFB','UHFB','elec',290,[0 0]);
 
 %% FUNCTION
 tic; out = struct; res = NaN(length(orb_alts1),length(orb_alts2),8);
@@ -49,12 +49,12 @@ S(1) = load('gong'); sound(S(1).y,S(1).Fs); toc
 
 %% SAVE RESULTS
 %save results and variables to output file for post-processing convenience
-%save('Output Files\Intersat\PAX_comms_intersat_out','out','res','keps1','keps2',...
+%save('Output Files\Intersat\UHFB_comms_intersat_out','out','res','keps1','keps2',...
 %     'dt','sols','sit','frq','powt','hard','t','orb_alts1','orb_alts2')
 
 %% POST-PROCESSING
 %Load information from file if required 
-%load('Output Files\Intersat\PAX_comms_intersat_out')
+%load('Output Files\Intersat\UHFB_comms_intersat_out')
 plots = zeros(length(orb_alts1),length(orb_alts2),4);
 plots(:,:,1) = res(:,:,5)./sols;             %[Gb/sol] Daily data transfer
 plots(:,:,2) = res(:,:,5)./res(:,:,3)./sols;   %[Gb/kJ/sol] Transfer Efficiency

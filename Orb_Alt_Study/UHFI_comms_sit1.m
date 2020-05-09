@@ -10,7 +10,7 @@ addpath('Output Files')
 % revisited later to check accuracy and suitability.
 
 %% INPUTS
-orb_alts = 100:50:5000;              %[km] altitude range of interest
+orb_alts = 200:100:10000;              %[km] altitude range of interest
 a = orb_alts + astroConstants(24);     %[km] semi-major axis range of interest
 keps = zeros(length(a),6);              %[km & rads] 
 keps(:,1) = 1*a';                       %[km & rads]
@@ -19,7 +19,7 @@ keps(:,3) = 0;
 ustat = [0,0];              %[deg lat, deg long] typical user position
 ustat = deg2rad(ustat);     %degrees to radians
 
-dt = 15; sols = 2; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
+dt = 20; sols = 3; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
 sit = 1;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
 frq = 401.6e6;    %[Hz] carrier signal frequency
 powt = 15;        %[W] ground user RF power emitted

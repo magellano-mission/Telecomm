@@ -76,7 +76,7 @@ if PdB_r >= cont.powr(1) && PdB_r <= cont.powr(2)
     CNR = 10^(CNRdB/10);         %converting CNR to linear ratio
     
     % Hartley's law with error coding efficiency factor R included to find
-    % the maximum possible useful bit-rate for the given contware
+    % the maximum possible useful bit-rate for the given hardware
     fb = 2 * cont.BW * log2(cont.M) * cont.R;  %[bit/s]
     
     EbNo = CNR * cont.BW / fb;         %Linear bit energy to noise energy ratio
@@ -84,17 +84,15 @@ if PdB_r >= cont.powr(1) && PdB_r <= cont.powr(2)
     
     switch cont.M
         case 2          %BPSK coding (10.6 & 10.6 uncoded theoretical limits)
-            [rate] = bitter_rate(CNR,ENdB,3,fb,1000,cont);    
+            [rate] = bitter_rate(CNR,ENdB,4,fb,1000,cont);    
         case 4          %QPSK coding (13.6 & 10.6 uncoded theoretical limits)
-            [rate] = bitter_rate(CNR,ENdB,4,fb,1000,cont);
+            [rate] = bitter_rate(CNR,ENdB,6,fb,1000,cont);
     end
 else
     %Otherwise transmission is not possible
     CNRdB = NaN;
     rate = 0;
 end
-
-data = rate*dt;     %[bits] volume of data transferred in time step
  
 %% OUTPUT
 %Saving variables to an output structure
@@ -103,4 +101,4 @@ out.P_W   = PW_r;                 %[W]   Received power raw
 out.dE    = out.P_W * dt;         %[J]   Received energy in time step
 out.CNRdB = CNRdB;                %[dB]  log10 of CNR power ratio
 out.datrat = rate;                %[bits/s] rate of useful information transfer
-out.data = data;                  %[bit] volume of data transferred in time step
+out.data = rate*dt;               %[bit] volume of data transferred in time step

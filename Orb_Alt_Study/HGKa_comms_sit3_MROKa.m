@@ -16,10 +16,10 @@ keps_m = [orb_alt_m 0 0 0 0 0];       %[km & rads]
 orb_alt_e = astroConstants(2);        %[km] Earth average orbital radius
 keps_e = [orb_alt_e 0 0 0 0 0];       %[km & rads]
 
-dt = 86400; days = 365*2.135; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
+dt = 60; days = 365*2.135; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
 sit = 3;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
 frq = 34e9;    %[Hz] carrier signal frequency
-powt = 34;        %[W] use user RF power emitted
+powt = 35;        %[W] use user RF power emitted
 
 hard = sys_hard('OHGAKa','DSN34Ka','dsn',290,[1 1]);
 %hard.cont.BW = 4e6;
