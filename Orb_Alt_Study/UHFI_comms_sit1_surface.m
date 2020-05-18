@@ -14,7 +14,7 @@ orb_alts = 200:200:5000;              %[km] altitude range of interest
 a = orb_alts + astroConstants(24);     %[km] semi-major axis range of interest
 keps = zeros(length(a),6);              %[km & rads] 
 keps(:,1) = 1*a';                       %[km & rads]
-inc = 0;
+inc = 20;
 keps(:,3) = pi/(180/inc);   % 15 degree inclincation
 
 lats = 0:3:30;
@@ -34,8 +34,8 @@ custt.gain_peak = 5;
 custt.HPBW = 75;
 custt.plotting = 0;
 custr.type = 'helical';
-custr.gain_peak = 8;
-custr.HPBW = 60;
+custr.gain_peak = 10;
+custr.HPBW = 45;
 custr.plotting = 0;
 
 hard = sys_hard(0,0,custt,custr,'elec',290,[0 0]);

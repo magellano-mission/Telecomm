@@ -14,9 +14,10 @@ orb_alts = 200:200:5000;              %[km] altitude range of interest
 a = orb_alts + astroConstants(24);     %[km] semi-major axis range of interest
 keps = zeros(length(a),6);              %[km & rads] 
 keps(:,1) = 1*a';                       %[km & rads]
-keps(:,3) = pi/9;
+inc = 20;
+keps(:,3) = pi/(180/inc);   % 15 degree inclincation
 
-lats = -30:2.5:30;
+lats = 0:3:30;
 ustat = zeros(length(lats),2);
 ustat(:,1) = 1*lats';              %[deg lat, deg long] typical user position
 ustat = deg2rad(ustat);            %degrees to radians
@@ -24,16 +25,17 @@ ustat = deg2rad(ustat);            %degrees to radians
 dt = 60; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
 sit = 1;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
 frq = 8490e6;    %[Hz] carrier signal frequency
-powt = 15;        %[W] ground user RF power emitted
+freq = 'X band';
+powt = 10;        %[W] ground user RF power emitted
 
 %Custom Antennas
 custt.type = 'phased array';
-custt.gain_peak = 18.2;
-custt.HPBW = 17.1;
+custt.gain_peak = 21.3;
+custt.HPBW = 2.7;
 custt.plotting = 0;
 custr.type = 'phased array';
-custr.gain_peak = 26.8;
-custr.HPBW = 6.4;
+custr.gain_peak = 27.4;
+custr.HPBW = 2.7;
 custr.plotting = 0;
 
 hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);
@@ -80,15 +82,18 @@ zlabel('Data Transfer Efficiency [Mb/kJ/sol]')
 zlim([0 inf])
 
 subplot(2,2,3)
-surf(orb_alts,lats,plots(:,:,3))
+surf(orb_alts,lats,plots(:,:,3),'FaceColor','b')
 ylabel('Gound User Latitude [degrees]')
 xlabel('Orbiter Altitude [km]')
 zlabel('Daily Time Window [hrs]')
 hold on
-surf(orb_alts,lats,plots(:,:,4))
+surf(orb_alts,lats,plots(:,:,4),'FaceColor','r')
 zlim([0 inf])
 legend('Visible Time','Downlink Time','Location','southeast')
 hold off
+
+sgtitle({powt+"W (RF) User with "+custt.gain_peak+"dBi peak gain "+freq+" antenna", ...
+        inc+" degree inclination orbiter with "+custr.gain_peak+"dBi gain "+freq+" antenna"}) 
 
 fig=gcf;
 fig.Units='normalized';
@@ -99,14 +104,15 @@ return
 
 %% PARTICULAR CASE PLOTTING
 %choose an altitude of interest to produce plots for
-alt_int = 17000;     %[km] altitude
-[log,row] = ismember(alt_int,orb_alts);
+alt_int = 2000;     %[km] altitude
+[~,row1] = ismember(alt_int,orb_alts);
+
+lats_int = 6;
+[~,row2] = ismember(deg2rad(lats_int),ustat);
 
 %choose a new time frame to produce the plots for
 dt_plot = 10;
 sols_plot = 1;
 t_plot = 0:dt_plot:88620*sols_plot;
 
-if log == 1
-[~,~] = pass_over(sit,frq,powt,hard,keps(row,:),ustat,t_plot,dt_plot,1);
-end
+[~,~] = pass_over(sit,frq,powt,hard,keps(row1,:),ustat(row2,:),t_plot,dt_plot,1);
