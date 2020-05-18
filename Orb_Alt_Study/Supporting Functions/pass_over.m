@@ -262,6 +262,7 @@ for i = 1:length(recv)
      xlabel(tlabel)
      xlim([0 time(end)])
      ylabel('CNR [dB]')
+     ylim([-2 inf])
      grid on
 end
 
