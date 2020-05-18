@@ -16,37 +16,41 @@ keps_m = [orb_alt_m 0 0 0 0 0];       %[km & rads]
 orb_alt_e = astroConstants(2);        %[km] Earth average orbital radius
 keps_e = [orb_alt_e 0 0 0 0 0];       %[km & rads]
 
-dt = 60; days = 365*2.135; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
+dt = 86400; days = 365*2.135; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
+%dt = 60; days = 1; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
 sit = 3;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
-frq = 34e9;    %[Hz] carrier signal frequency
+frq = 32e9;    %[Hz] carrier signal frequency
 powt = 35;        %[W] use user RF power emitted
 
-hard = sys_hard('OHGAKa','DSN34Ka','dsn',290,[1 1]);
-%hard.cont.BW = 4e6;
+hard = sys_hard('OHGAKa','DSN34Ka',0,0,'dsn',290,[1 1]);
+hard.cont.symmax = 4e6;
+hard.cont.BW = hard.cont.symmax/1.7;
+hard.cont.M = 4;
 
 %% FUNCTION
 tic; out = struct; %res = zeros(length(keps_m),7);
 
-[out.all,tots] = pass_over(sit,frq,powt,hard,keps_m,keps_e,t,dt,0);
+[out.all,tots] = pass_over(sit,frq,powt,hard,keps_m,keps_e,t,dt,1);
     %storing totals          %[kJ]    [uJ]    [Gb]    vis     con 
     res = [keps_m(1) tots(1) tots(2) tots(3) tots(4) tots(5) days]; 
 
 
-S(1) = load('gong'); sound(S(1).y,S(1).Fs); toc
+S(1) = load('chirp'); sound(S(1).y,S(1).Fs); toc
+return
 
 %% SAVE RESULTS
 %save results and variables to output file for post-processing convenience
 %save('Output Files\PAX_comms_inter_system_out','out','res','ustat','keps',...
-%     'dt','sols','sit','frq','powt','point','t')
+%     'dt','days','sit','frq','powt','point','t')
 
 %% POST-PROCESSING
 %Load information from file if required 
 %load('Output Files\???')
 plots = zeros(length(out),6);
-plots(:,1) = res(:,4)./sols;             %[Gb/sol] Daily data transfer
-plots(:,2) = res(:,4)./res(:,2)./sols;   %[Gb/kJ/sol] Transfer Efficiency
-plots(:,3) = res(:,5)./sols;             %[hrs/sol] Visible Time
-plots(:,4) = res(:,6)./sols;             %[hrs/sol] Downlink Time
+plots(:,1) = res(:,4)./days;             %[Gb/sol] Daily data transfer
+plots(:,2) = res(:,4)./res(:,2)./days;   %[Gb/kJ/sol] Transfer Efficiency
+plots(:,3) = res(:,5)./days;             %[hrs/sol] Visible Time
+plots(:,4) = res(:,6)./days;             %[hrs/sol] Downlink Time
 
 %% STUDY PLOTTING
 figure(1)
@@ -92,8 +96,8 @@ return
 
 %choose a new time frame to produce the plots for
 %dt_plot = 10;
-%sols_plot = 1;
-%t_plot = 0:dt_plot:88620*sols_plot;
+%days_plot = 1;
+%t_plot = 0:dt_plot:88620*days_plot;
 
 %if log == 1
 [~,~] = pass_over(sit,frq,powt,hard,keps_m,keps_e,t,dt,1);

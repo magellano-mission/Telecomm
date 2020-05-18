@@ -1,6 +1,6 @@
 
 %% SET UP
-clearvars; clc; close all;
+clearvars; clc; %close all;
 format compact
 addpath('Antenna Gain Curves')
 addpath('Supporting Functions')
@@ -19,14 +19,25 @@ keps_e = [orb_alt_e 0 0 0 0 0];       %[km & rads]
 dt = 86400; days = 365*2.135; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
 %dt = 60; days = 1; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
 sit = 3;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
-frq = 8490e6;    %[Hz] carrier signal frequency
+frq = 32e9;    %[Hz] carrier signal frequency
 powt = 100;        %[W] use user RF power emitted
 
-hard = sys_hard('OHGAX','DSN34X',0,0,'dsn',290,[1 1]);
-hard.cont.symmax = 4e6;
-hard.cont.BW = hard.cont.symmax/1.5;
-hard.cont.M = 2;
+%Custom Antennas
+custt.type = 'parabolic';
+custt.gain_peak = 56.4;
+custt.HPBW = 0.3;
+custt.plotting = 0;
+%custr.type = 'parabolic';
+%custr.gain_peak = 8;
+%custr.HPBW = 60;
+%custr.plotting = 0;
 
+hard = sys_hard(0,'DSN34Ka',custt,0,'dsn',290,[1 1]);
+hard.cont.symmax = 4e6;
+hard.cont.BW = hard.cont.symmax / 2;
+hard.cont.M = 4;
+
+%hold on
 %% FUNCTION
 tic; out = struct; %res = zeros(length(keps_m),7);
 
@@ -36,6 +47,8 @@ tic; out = struct; %res = zeros(length(keps_m),7);
 
 
 S(1) = load('chirp'); sound(S(1).y,S(1).Fs); toc
+%hold off
+%legend('MRO X band','MAGELLANO Ka Band','Location','northwest')
 return
 
 %% SAVE RESULTS
@@ -90,15 +103,15 @@ fig.OuterPosition=[0 0 1 1];
 return
 
 %% PARTICULAR CASE PLOTTING
-choose an altitude of interest to produce plots for
-alt_int = 17000;     %[km] altitude
-[log,row] = ismember(alt_int,orb_alts);
+%choose an altitude of interest to produce plots for
+%alt_int = 17000;     %[km] altitude
+%[log,row] = ismember(alt_int,orb_alts);
 
-choose a new time frame to produce the plots for
-dt_plot = 10;
-days_plot = 1;
-t_plot = 0:dt_plot:88620*days_plot;
+%choose a new time frame to produce the plots for
+%dt_plot = 10;
+%days_plot = 1;
+%t_plot = 0:dt_plot:88620*days_plot;
 
-if log == 1
+%if log == 1
 [~,~] = pass_over(sit,frq,powt,hard,keps_m,keps_e,t,dt,1);
-end
+%end

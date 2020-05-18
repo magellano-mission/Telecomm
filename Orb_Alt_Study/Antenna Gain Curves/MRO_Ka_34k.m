@@ -1,6 +1,6 @@
 function [DS_HGA_Ka] = MRO_Ka_34k(plotting)
 % This function creates a spline curve of the dB gain versus angle off bore
-% axis for the steered HGA on the Curiosity rover
+% axis for the MRO HGA operating in Ka band
 
 G_bor = [0 56.4;
     0.1 52.4;

@@ -1,6 +1,6 @@
 function [DS_HGA_X] = MRO_HGA_7183(plotting)
 % This function creates a spline curve of the dB gain versus angle off bore
-% axis for the steered HGA on the Curiosity rover
+% axis for the MRO HGA operating in X band
 
 G_bor = [0 46.7;
     0.1 46.4;
@@ -15,7 +15,6 @@ if plotting == 1
     xlabel('Boresight Offset (degrees)')
     ylabel('Directional Gain [dBi]')
 end
-
 
 G_bor(:,1) = deg2rad(G_bor(:,1));
 DS_HGA_X.lim = G_bor(end,1);

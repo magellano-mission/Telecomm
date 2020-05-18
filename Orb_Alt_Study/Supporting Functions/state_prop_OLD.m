@@ -104,5 +104,19 @@ if ismember("orbiter",type) == 1
     %Outputs for orbiter
     out.pos = pos;               %[km] Cartesian position vector
     out.vel = vel;               %[km/s] Cartesian velocity vector
+    
+    if sit == 1
+        %calculate the half-chord length for checking orbiter visibility
+        theta = 2*acos(r_mars/r);    %[rad] chord central angle  
+        chord = 2*r*sin(theta/2);    %[km] chord length
+        hchord = chord/2;            %[m] halve to get one-way distance
+        out.hchord = hchord;         %[km] Half chord length
+    end
+    
+    if sit == 2
+        %calculate the maximum visibility angle above
+        ang = asin(r_mars/r);
+        out.ang = ang;
+    end
 end
 

@@ -65,6 +65,14 @@ for i = 1:size(keps,1)
     recv(i).pos = out.pos*1000;         %[m,m,m] convert units
     recv(i).vel = out.vel*1000;         %[m/s,m/s,m/s] convert units
     recv(i).dis = sqrt(sum(recv(i).pos'.^2))';   %[m] orbiter to Mars Centre distance
+    if sit == 1
+        recv(i).hchord = out.hchord*1000;   %[m] convert units
+    end
+    if sit == 2
+        phi = asin(out.ang / tran.dis * recv(i).dis);
+        gam = pi - phi - out.ang;
+        recv(i).rnglim = sin(gam)*recv(i).dis/sin(phi);
+    end
     
     %Relative distance in non-rotating, Mars centre reference frame
      recv(i).rel = recv(i).pos - tran.pos;         %[m] orbiter to ground  user relative position vector
@@ -81,33 +89,32 @@ for i = 1:size(keps,1)
      recv(i).data = zeros(length(t),1);
 
      for j=1:length(t)
+         switch sit     %Visibility test
+             case 1     %Check if range is less than half chord length
+                 y = recv(i).rng(j) < recv(i).hchord;
+             case 2     %Check if Mars is not blocking the link, add later
+                 y = recv(i).rng(j) < recv(i).rnglim;
+             case 3     %Check if Sun is not blocking the link, add later
+                 y = 1;
+         end
+         
+         
+        if y == 1    %if visibility requirements are satisfied
+            vis = vis + 1;
             switch sit
                 case 1   %identifying variables of triangle and solving for elevation angle                
                     a = recv(i).rng(j);      %Range, orbiter to ground user
                     b = tran.dis(j);         %Distance, Mars centre to ground user distance
                     c = recv(i).dis(j);      %Distance, Mars centre to orbiter distance
                     C = acos((a^2 + b^2 -c^2)/(2*a*b));
-                    if C > pi/2
-                        recv(i).ele(j) = C - pi/2; %[rad] convert elevation to an angle w.r.t bore axis
-                        vis = vis + 1;
-                    else
-                        recv(i).rng(j) = NaN;
-                        recv(i).rangrat(j) = NaN;
-                        recv(i).dopfrq(j) = NaN;
-                    end
-                case  2   %identifying variables of triangle and solving for elevation angle                
-                    a = recv(i).rng(j);      %Range, orbiter to ground user
-                    b = tran.dis(j);         %Distance, Mars centre to ground user distance
-                    c = recv(i).dis(j);      %Distance, Mars centre to orbiter distance
+                    recv(i).ele(j) = C - pi/2; %[rad] convert elevation to an angle w.r.t bore axis
+                case 2 
+                    %identifying variables of triangle and solving for angle C
+                    a = recv(i).rng(j);      %Range, orbiter to orbiter
+                    b = tran.dis(j);         %Distance, Mars centre to transmitting orbiter
+                    c = recv(i).dis(j);      %Distance, Mars centre to receiving orbiter
                     C = acos((a^2 + b^2 -c^2)/(2*a*b));
-                    if C > pi/2
-                        recv(i).ele(j) = C - pi/2; %[rad] convert elevation to an angle w.r.t bore axis
-                        vis = vis + 1;
-                    else
-                        recv(i).rng(j) = NaN;
-                        recv(i).rangrat(j) = NaN;
-                        recv(i).dopfrq(j) = NaN;
-                    end    
+                    recv(i).ele(j) = C - pi/2;  %[rad] convert elevation to an angle w.r.t bore axis
                 case 3
                     recv(i).ele(j) = pi/2;
                     a = recv(i).rng(j);
@@ -146,14 +153,18 @@ for i = 1:size(keps,1)
                     cnt = cnt + 1;
                 end 
             end
+            
+        else    %Visibility requirements are not satisfied
+            recv(i).rng(j) = NaN;
+            recv(i).rangrat(j) = NaN;
+            recv(i).dopfrq(j) = NaN;
+        end
      end
      recv(i).cumE = cumsum(recv(i).dE);       %cumulative RF energy transmitted per orbiter
      sumEner = sumEner + recv(i).cumE(end);     %RF energy transmitted to the whole constellation
      recv(i).cumDat = cumsum(recv(i).data);   %cumulative data transmitted per orbiter
      sumData = sumData + recv(i).cumDat(end);   %cumulative data transmitted to whole constellation
 end
-     
-
 %% totals - CUMULATIVE OUTPUTS
 res(1) = (cnt.*dt.*powt)/1e3;       %[kJ] total energy consumed
 res(2) = sumEner*1e6;               %[uJ] total RF energy received
@@ -166,24 +177,12 @@ res(5) = cnt.*dt / 3600;            %[hrs] total downlink time
 %% PLOTS ('plots' = 1 if plots are required)
 if plots == 1
 
-switch sit
-    case 1
-        time = t/3600;
-        tlabel = 'Time [hrs]';
-    case 2
-        time = t/3600;
-        tlabel = 'Time [hrs]';
-    case 3
-        time = t/86400;
-        tlabel = 'Time [days]';
-end
-    
 subplot(3,3,1)
 hold on
 for i = 1:length(recv)
-     plot(time,rad2deg(recv(i).ele))
-     xlabel(tlabel)
-     xlim([0 time(end)])
+     plot(t/3600,rad2deg(recv(i).ele))
+     xlabel('Time [hrs]')
+     xlim([0 t(end)/3600])
      ylabel('Elevation [deg]')
      ylim([0 90])
      grid on
@@ -193,9 +192,9 @@ hold off
 subplot(3,3,2)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).rng/1000)
-     xlabel(tlabel)
-     xlim([0 time(end)])
+     plot(t/3600,recv(i).rng/1000)
+     xlabel('Time [hrs]')
+     xlim([0 t(end)/3600])
      ylabel('Range [km]')
      ylim([0 inf])
      grid on
@@ -205,9 +204,9 @@ hold off
 subplot(3,3,3)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).rangrat/1000)
-     xlabel(tlabel)
-     xlim([0 time(end)])
+     plot(t/3600,recv(i).rangrat/1000)
+     xlabel('Time [hrs]')
+     xlim([0 t(end)/3600])
      ylabel('Range Rate [km/s]')
      grid on
 end
@@ -216,9 +215,9 @@ hold off
 subplot(3,3,4)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).dopfrq/1000)
-     xlabel(tlabel)
-     xlim([0 time(end)])
+     plot(t/3600,recv(i).dopfrq/1000)
+     xlabel('Time [hrs]')
+     xlim([0 t(end)/3600])
      ylabel('Doppler Shift [kHz]')
      grid on
 end
@@ -237,9 +236,9 @@ hold off
 subplot(3,3,5)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).cumE)
-     xlabel(tlabel)
-     xlim([0 time(end)])
+     plot(t/3600,recv(i).cumE)
+     xlabel('Time [hrs]')
+     xlim([0 t(end)/3600])
      ylabel('Cumulative Energy [J]')
      grid on
 end
@@ -247,9 +246,9 @@ end
 subplot(3,3,6)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).PdB)
-     xlabel(tlabel)
-     xlim([0 time(end)])
+     plot(t/3600,recv(i).PdB)
+     xlabel('Time [hrs]')
+     xlim([0 t(end)/3600])
      ylabel('Signal Power [dBW]')
      ylim(hard.cont.powr)
      grid on
@@ -258,9 +257,9 @@ end
 subplot(3,3,7)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).CNR)
-     xlabel(tlabel)
-     xlim([0 time(end)])
+     plot(t/3600,recv(i).CNR)
+     xlabel('Time [hrs]')
+     xlim([0 t(end)/3600])
      ylabel('CNR [dB]')
      grid on
 end
@@ -268,9 +267,9 @@ end
 subplot(3,3,8)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).datrat/1e6)
-     xlabel(tlabel)
-     xlim([0 time(end)])
+     plot(t/3600,recv(i).datrat/1e6)
+     xlabel('Time [hrs]')
+     xlim([0 t(end)/3600])
      ylabel('Data Rate [Mb/s]')
      ylim([0 inf])
      grid on
@@ -280,9 +279,9 @@ hold off
 subplot(3,3,9)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).cumDat/1e9)
-     xlabel(tlabel)
-     xlim([0 time(end)])
+     plot(t/3600,recv(i).cumDat/1e9)
+     xlabel('Time [hrs]')
+     xlim([0 t(end)/3600])
      ylabel('Cumulative Data [Gb]')
      grid on
 end
