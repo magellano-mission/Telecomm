@@ -10,27 +10,32 @@ addpath('Output Files')
 % revisited later to check accuracy and suitability.
 
 %% INPUTS
-orb_alts = 200:200:5000;              %[km] altitude range of interest
+orb_alts = 500:250:10000;              %[km] altitude range of interest
+incs = 0:5:90;                        %[degrees] RS inclination range of interest
+inc = deg2rad(incs);
 a = orb_alts + astroConstants(24);     %[km] semi-major axis range of interest
-keps = zeros(length(a),6);              %[km & rads] 
-keps(:,1) = 1*a';                       %[km & rads]
-inc = 20;
-keps(:,3) = pi/(180/inc);   % 15 degree inclincation
+keps = zeros(length(orb_alts),length(inc),6);              %[km & rads] 
 
-lats = 0:3:30;
-ustat = zeros(length(lats),2);
-ustat(:,1) = 1*lats';              %[deg lat, deg long] typical user position
-ustat = deg2rad(ustat);            %degrees to radians
+for jj = 1:length(orb_alts)
+    for ii = 1:length(incs)
+        keps(jj,ii,1) = a(jj);
+        keps(jj,ii,3) = inc(ii);
+    end
+end
 
-dt = 60; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
-sit = 1;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+ustat = [300,0,75,0,0,0];             %[km alt & degrees] typical user position
+ustat(1) = ustat(1) + astroConstants(24);
+ustat(2:6) = deg2rad(ustat(2:6));     %degrees to radians
+
+dt = 30; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
+sit = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
 frq = 8490e6;    %[Hz] carrier signal frequency
 freq = 'X band';
-powt = 10;        %[W] ground user RF power emitted
+powt = 25;        %[W] ground user RF power emitted
 
 %Custom Antennas
 custt.type = 'phased array';
-custt.gain_peak = 21.3;
+custt.gain_peak = 27.4;
 custt.HPBW = 2.7;
 custt.plotting = 0;
 custr.type = 'phased array';
@@ -41,12 +46,12 @@ custr.plotting = 0;
 hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);
 
 %% FUNCTION
-tic; out = struct; res = zeros(length(lats),length(a),8);
-for i = 1:length(lats)
-    for j = 1:length(a)
-    [out(i,j).all,tots] = pass_over(sit,frq,powt,hard,keps(j,:),ustat(i,:),t,dt,0);
+tic; out = struct; res = zeros(length(incs),length(a),8);
+for i = 1:length(incs)
+    for j = 1:length(orb_alts)
+    [out(i,j).all,tots] = pass_over(sit,frq,powt,hard,keps(j,i,:),ustat,t,dt,0);
         %storing totals                    %[kJ]    [uJ]    [Gb]    vis     con 
-        res(i,j,:) = [ustat(i) orb_alts(j) tots(1) tots(2) tots(3) tots(4) tots(5) sols]; 
+        res(i,j,:) = [incs(i) orb_alts(j) tots(1) tots(2) tots(3) tots(4) tots(5) sols]; 
     end
 end
 S(1) = load('chirp'); sound(S(1).y,S(1).Fs); toc
@@ -59,7 +64,7 @@ S(1) = load('chirp'); sound(S(1).y,S(1).Fs); toc
 %% POST-PROCESSING
 %Load information from file if required 
 %load('Output Files\???')
-plots = zeros(length(lats),length(out),6);
+plots = zeros(length(incs),length(out),6);
 plots(:,:,1) = res(:,:,5)./sols;               %[Gb/sol] Daily data transfer
 plots(:,:,2) = res(:,:,5)./res(:,:,3)./sols;   %[Gb/kJ/sol] Transfer Efficiency
 plots(:,:,3) = res(:,:,6)./sols;               %[hrs/sol] Visible Time
@@ -68,32 +73,32 @@ plots(:,:,4) = res(:,:,7)./sols;               %[hrs/sol] Downlink Time
 %% STUDY PLOTTING
 figure(1)
 subplot(2,2,1)
-surf(orb_alts,lats,plots(:,:,1))
-ylabel('Gound User Latitude [km]')
-xlabel('Orbiter Altitude [km]')
+surf(orb_alts,incs,plots(:,:,1))
+ylabel('RS Orbiter inclincation [degrees]')
+xlabel('RS Orbiter Altitude [km]')
 zlabel('Daily Data Transfer [Gb]')
 zlim([0 inf])
 
 subplot(2,2,2)
-surf(orb_alts,lats,plots(:,:,2)*1000)
-ylabel('Gound User Latitude [km]')
-xlabel('Orbiter Altitude [km]')
+surf(orb_alts,incs,plots(:,:,2)*1000)
+ylabel('RS Orbiter inclincation [degrees]')
+xlabel('RS Orbiter Altitude [km]')
 zlabel('Data Transfer Efficiency [Mb/kJ/sol]')
 zlim([0 inf])
 
 subplot(2,2,3)
-surf(orb_alts,lats,plots(:,:,3),'FaceColor','b')
-ylabel('Gound User Latitude [degrees]')
-xlabel('Orbiter Altitude [km]')
+surf(orb_alts,incs,plots(:,:,3),'FaceColor','b')
+ylabel('RS Orbiter inclincation [degrees]')
+xlabel('RS Orbiter Altitude [km]')
 zlabel('Daily Time Window [hrs]')
 hold on
-surf(orb_alts,lats,plots(:,:,4),'FaceColor','r')
+surf(orb_alts,incs,plots(:,:,4),'FaceColor','r')
 zlim([0 inf])
 legend('Visible Time','Downlink Time','Location','southeast')
 hold off
 
-sgtitle({powt+"W (RF) User with "+custt.gain_peak+"dBi peak gain "+freq+" antenna", ...
-        inc+" degree inclination orbiter with "+custr.gain_peak+"dBi gain "+freq+" antenna"}) 
+sgtitle({powt+"W (RF), 75 degree inclination orbital user with "+custt.gain_peak+"dBi peak gain "+freq+" antenna", ...
+        "RS orbiter with "+custr.gain_peak+"dBi gain "+freq+" antenna"}) 
 
 fig=gcf;
 fig.Units='normalized';
