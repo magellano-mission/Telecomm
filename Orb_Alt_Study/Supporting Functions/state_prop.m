@@ -78,6 +78,7 @@ if ismember("orbiter",type) == 1
     %if the orbit is circular
     if state(2) == 0   
         keps(:,6) = n.*time' + keps(1,6);   %[rad] true anomaly
+        keps(:,6) = wrapTo2Pi(keps(:,6));
     %if the orbit is elliptic
     else              
         keps(:,7) = n.*time' + keps(1,6);   %[rad] mean anomaly
@@ -104,5 +105,6 @@ if ismember("orbiter",type) == 1
     %Outputs for orbiter
     out.pos = pos;               %[km] Cartesian position vector
     out.vel = vel;               %[km/s] Cartesian velocity vector
+    out.anm = keps(:,6);         %[rad] true anomaly of orbiter
 end
 

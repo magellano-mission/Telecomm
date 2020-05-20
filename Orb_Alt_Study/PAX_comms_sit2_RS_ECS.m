@@ -11,7 +11,7 @@ addpath('Output Files')
 
 %% INPUTS
 %Receiving orbiter in higher orbit
-orb_alts1 = 3000:250:17000;              %[km] altitude range of interest
+orb_alts1 = 3000:1000:17000;              %[km] altitude range of interest
 a1 = orb_alts1 + astroConstants(24);     %[km] semi-major axis range of interest
 keps1 = zeros(length(a1),6);              %[km & rads] 
 keps1(:,1) = 1*a1';                       %[km & rads]
@@ -41,6 +41,9 @@ custr.HPBW = 2.7;
 custr.plotting = 0;
 
 hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);
+
+%sides = 3;
+%[hard.prism] = phased_prism(sides,custr.gain_peak,1);
 
 %% FUNCTION
 tic; out = struct; res = NaN(length(orb_alts1),7);

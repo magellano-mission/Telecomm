@@ -19,37 +19,37 @@ a_Mars  = 1.52*a_Earth;
 
 %% (PROOF) CASE 1 - MRO/Curiosity UHF at 401.6 MHz
 
-%ustat1 = [0,0];
-%ustat1 = deg2rad(ustat1);    %degrees to radians
+ustat1 = [0,0];
+ustat1 = deg2rad(ustat1);    %degrees to radians
 
-ustat1 = [300,0,75,0,0,0];             %[km alt & degrees] typical user position
-ustat1(1) = ustat1(1) + astroConstants(24);
-ustat1(2:6) = deg2rad(ustat1(2:6));     %degrees to radians
+%ustat1 = [300,0,75,0,0,0];             %[km alt & degrees] typical user position
+%ustat1(1) = ustat1(1) + astroConstants(24);
+%ustat1(2:6) = deg2rad(ustat1(2:6));     %degrees to radians
 
 keps1 = [6390,0,0,0,0,0;
-         6390,0,0,0,0,pi/2;
-         6390,0,0,0,0,pi;
-         6390 0,0,0,0,3*pi/2];    %[altitude km,deg,deg,deg,deg,deg]
+         6390,0,0,0,0,2*pi/3;
+         6390,0,0,0,0,4*pi/3;
+         10390 0,0,0,0,3*pi/2];    %[altitude km,deg,deg,deg,deg,deg]
                              %[a,e,i,OM,om,th]
 
 %keps1(:,2:6) = deg2rad(keps1(:,2:6));           %degrees to radians
 %keps1(:,1)   = keps1(:,1) + astroConstants(24); %altitude to radius in [km]
-sit1 = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter 
+sit1 = 1;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter 
                    % to Mars orbiter, 3 - Mars to Earth (generic)
-frq1 = 401.6e6;    %[Hz] carrier signal frequency
-powt1 = 30;        %[W] ground user RF power emitted
+frq1 = 8400e6;    %[Hz] carrier signal frequency
+powt1 = 10;        %[W] ground user RF power emitted
 
 %Custom Antennas
-custt.type = 'helical';
-custt.gain_peak = 8;
-custt.HPBW = 60;
+custt.type = 'phased array';
+custt.gain_peak = 21.3;
+custt.HPBW = 1;
 custt.plotting = 0;
-custr.type = 'helical';
-custr.gain_peak = 8;
-custr.HPBW = 60;
+custr.type = 'phased array';
+custr.gain_peak = 21.3;
+custr.HPBW = 1;
 custr.plotting = 0;
 
-hard = sys_hard(0,0,custt,custr,'elec',290,[0 0]);
+hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);
 
 %Run the function and output graphs and totals
 tic

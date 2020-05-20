@@ -65,6 +65,7 @@ for i = 1:size(keps,1)
     recv(i).pos = out.pos*1000;         %[m,m,m] convert units
     recv(i).vel = out.vel*1000;         %[m/s,m/s,m/s] convert units
     recv(i).dis = sqrt(sum(recv(i).pos'.^2))';   %[m] orbiter to Mars Centre distance
+    recv(i).anm = out.anm;
     
     %Relative distance in non-rotating, Mars centre reference frame
      recv(i).rel = recv(i).pos - tran.pos;         %[m] orbiter to ground  user relative position vector
@@ -133,6 +134,8 @@ for i = 1:size(keps,1)
                         gr_el = hard.gainr.bor(borang);    %[dBi]
                     case 1          %receiver antenna is pointed
                         gr_el = hard.gainr.bor(0);
+                    case 3
+                        gr_el = interp1(hard.prism(:,1),hard.prism(:,2),recv(i).anm(j));
                 end
             
                 %Calculate the energy and data transmitted between elements
