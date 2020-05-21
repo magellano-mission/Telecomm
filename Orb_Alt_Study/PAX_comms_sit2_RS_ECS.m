@@ -15,14 +15,14 @@ orb_alts1 = 3000:1000:17000;              %[km] altitude range of interest
 a1 = orb_alts1 + astroConstants(24);     %[km] semi-major axis range of interest
 keps1 = zeros(length(a1),6);              %[km & rads] 
 keps1(:,1) = 1*a1';                       %[km & rads]
-keps1(:,3) = deg2rad(20);
+keps1(:,3) = deg2rad(0);
 
 %Transmitting orbiter in lower orbit
 orb_alts2 = 2500;              %[km] altitude range of interest
 a2 = orb_alts2 + astroConstants(24);     %[km] semi-major axis range of interest
 keps2 = zeros(length(a2),6);              %[km & rads] 
 keps2(:,1) = 1*a2';                       %[km & rads]
-keps2(:,3) = deg2rad(20);
+keps2(:,3) = deg2rad(0);
 
 
 dt = 60; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
@@ -40,10 +40,10 @@ custr.gain_peak = 27.4;
 custr.HPBW = 2.7;
 custr.plotting = 0;
 
-hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);
+hard = sys_hard(0,0,custt,custr,'sdst',290,[0 3]);
 
-%sides = 3;
-%[hard.prism] = phased_prism(sides,custr.gain_peak,1);
+sides = 3;
+[hard.prism] = phased_prism(sides,custr.gain_peak,1);
 
 %% FUNCTION
 tic; out = struct; res = NaN(length(orb_alts1),7);

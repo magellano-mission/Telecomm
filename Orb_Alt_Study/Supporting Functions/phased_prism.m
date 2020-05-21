@@ -35,5 +35,7 @@ gains = 10*log10(gains);
 prism = [possy',gains'];
 
 if plotting == 1
+    figure(9)
     polarplot(possy,gains)
+    title('Dumb-bob Gain [dBi] vs Incident Angle [deg]')
 end

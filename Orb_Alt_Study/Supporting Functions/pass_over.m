@@ -134,8 +134,13 @@ for i = 1:size(keps,1)
                         gr_el = hard.gainr.bor(borang);    %[dBi]
                     case 1          %receiver antenna is pointed
                         gr_el = hard.gainr.bor(0);
-                    case 3
-                        gr_el = interp1(hard.prism(:,1),hard.prism(:,2),recv(i).anm(j));
+                    case 3          %ECS receiver is an unpointed prism
+                        % calculate the angle between ECS and RS in
+                        % abosolute, non-rotating coordinates
+                        ang = wrapTo2Pi(atan2(recv(i).rel(j,2),recv(i).rel(j,1)));
+                        % retrieve the gain from the 2D assembly gain
+                        % profile
+                        gr_el = interp1(hard.prism(:,1),hard.prism(:,2),ang);
                 end
             
                 %Calculate the energy and data transmitted between elements
