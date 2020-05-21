@@ -26,7 +26,11 @@ for i = 1:length(possy)     %iterate for each point on the circumference
         if possy(i) >= angles(j) - 0.33*pi ...
         && possy(i) <= angles(j) + 0.33*pi
             gaindB = curve.bor(abs(possy(i) - angles(j)));
-            gains(i) = gains(i) + 10^(gaindB/10);
+            if gaindB >= 0
+                gains(i) = gains(i) + 10^(gaindB/10);
+            else
+                gains(i) = NaN;
+            end
         end
     end
 end

@@ -15,9 +15,14 @@ if isequal(type,'helical') || isequal(type,'horn') || isequal(type,'parabolic') 
 end
 
 if isequal(type,'phased array')
-    G_bor = linspace(0,pi/2-0.1,20)';
+    G_bor = linspace(0,pi/2,1000)';
     G_bor(:,2) = gain_peak + 10.*log10((cos(G_bor(:,1))).^2.4);
-    curve.bor = fit(G_bor(:,1),G_bor(:,2),'smoothingspline');
+    for i=1:length(G_bor)
+        if G_bor(i,1) > pi/3
+            G_bor(i,2) = -1000;
+        end
+    end
+    curve.bor = fit(G_bor(:,1),G_bor(:,2),'linearinterp');
 end
 
 if plotting == 1

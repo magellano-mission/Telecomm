@@ -42,8 +42,9 @@ custr.plotting = 0;
 
 hard = sys_hard(0,0,custt,custr,'sdst',290,[0 3]);
 
-sides = 3;
+sides = 4;
 [hard.prism] = phased_prism(sides,custr.gain_peak,1);
+
 
 %% FUNCTION
 tic; out = struct; res = NaN(length(orb_alts1),7);
