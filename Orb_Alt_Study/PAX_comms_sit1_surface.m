@@ -10,14 +10,14 @@ addpath('Output Files')
 % revisited later to check accuracy and suitability.
 
 %% INPUTS
-orb_alts = 200:200:5000;              %[km] altitude range of interest
+orb_alts = 200:100:3000;              %[km] altitude range of interest
 a = orb_alts + astroConstants(24);     %[km] semi-major axis range of interest
 keps = zeros(length(a),6);              %[km & rads] 
 keps(:,1) = 1*a';                       %[km & rads]
-inc = 20;
-keps(:,3) = pi/(180/inc);   % 15 degree inclincation
+inc = -25;
+keps(:,3) = deg2rad(inc);   % 15 degree inclincation
 
-lats = 0:3:30;
+lats = -30:2.5:30;
 ustat = zeros(length(lats),2);
 ustat(:,1) = 1*lats';              %[deg lat, deg long] typical user position
 ustat = deg2rad(ustat);            %degrees to radians
@@ -32,10 +32,12 @@ powt = 10;        %[W] ground user RF power emitted
 custt.type = 'phased array';
 custt.gain_peak = 21.3;
 custt.HPBW = 2.7;
+custt.tilt = [0 0];         %[deg] tilt from zenith in [ele azi] spherical directions
 custt.plotting = 0;
 custr.type = 'phased array';
-custr.gain_peak = 27.4;
-custr.HPBW = 2.7;
+custr.gain_peak = 21.3;
+custr.HPBW = 2.7;           %[deg] tilt from nadir in [ele azi] spherical directions
+custr.tilt = [0 0];
 custr.plotting = 0;
 
 hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);
@@ -59,7 +61,7 @@ S(1) = load('chirp'); sound(S(1).y,S(1).Fs); toc
 %% POST-PROCESSING
 %Load information from file if required 
 %load('Output Files\???')
-plots = zeros(length(lats),length(out),6);
+plots = zeros(length(lats),length(orb_alts),6);
 plots(:,:,1) = res(:,:,5)./sols;               %[Gb/sol] Daily data transfer
 plots(:,:,2) = res(:,:,5)./res(:,:,3)./sols;   %[Gb/kJ/sol] Transfer Efficiency
 plots(:,:,3) = res(:,:,6)./sols;               %[hrs/sol] Visible Time
@@ -67,29 +69,40 @@ plots(:,:,4) = res(:,:,7)./sols;               %[hrs/sol] Downlink Time
 
 %% STUDY PLOTTING
 figure(1)
+colormap(winter)
 subplot(2,2,1)
-surf(orb_alts,lats,plots(:,:,1))
-ylabel('Gound User Latitude [km]')
+levels =  0:10:50;
+[C] = contour(orb_alts,lats,plots(:,:,1),levels);
+clabel(C,'FontSize',10)
+grid on
+ylabel('Gound User Latitude [degrees]')
 xlabel('Orbiter Altitude [km]')
-zlabel('Daily Data Transfer [Gb]')
+title('Daily Data Transfer [Gb]')
 zlim([0 inf])
 
 subplot(2,2,2)
-surf(orb_alts,lats,plots(:,:,2)*1000)
-ylabel('Gound User Latitude [km]')
+levels =  0:50:300;
+[C] = contour(orb_alts,lats,plots(:,:,2)*1000,levels);
+clabel(C,'FontSize',10)
+grid on
+ylabel('Gound User Latitude [degrees]')
 xlabel('Orbiter Altitude [km]')
-zlabel('Data Transfer Efficiency [Mb/kJ/sol]')
+title('Data Transfer Efficiency [Mb/kJ/sol]')
 zlim([0 inf])
 
 subplot(2,2,3)
-surf(orb_alts,lats,plots(:,:,3),'FaceColor','b')
+levels = 0:2:24;
+%surf(orb_alts,lats,plots(:,:,3),'FaceColor','b')
+[C] = contour(orb_alts,lats,plots(:,:,3),levels);
+clabel(C,'FontSize',10)
+grid on
 ylabel('Gound User Latitude [degrees]')
 xlabel('Orbiter Altitude [km]')
-zlabel('Daily Time Window [hrs]')
-hold on
-surf(orb_alts,lats,plots(:,:,4),'FaceColor','r')
-zlim([0 inf])
-legend('Visible Time','Downlink Time','Location','southeast')
+title('Daily Visibility to RS [hrs]')
+%hold on
+%surf(orb_alts,lats,plots(:,:,4),'FaceColor','r')
+%zlim([0 inf])
+%legend('Visible Time','Downlink Time','Location','southeast')
 hold off
 
 sgtitle({powt+"W (RF) User with "+custt.gain_peak+"dBi peak gain "+freq+" antenna", ...

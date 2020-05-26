@@ -1,4 +1,4 @@
-function [out] = state_prop(type,state,time,sit)
+function [out] = state_prop(type,state,time,sit,tilt)
 %% PURPOSE
 % This function propagates the states of surface and orbital vehicles over 
 % a given time period. A NON-ROTATING Mars centred reference frame is used 
@@ -44,9 +44,12 @@ if ismember("ground",type) == 1
     spp(:,1) = n.*time' + spp(1,1);         %propagate azimuth
     spp(:,2) = spp(1,2);                    %propagate elevation (constant)
     spp(:,3) = r_mars;                      %propagate radius (constant)
+
     %spherical coords to Cartesian, angles +ve CCW from +ve x axis (right)
    [pos(:,1),pos(:,2),pos(:,3)] = sph2cart(spp(:,1),spp(:,2),spp(:,3));
-    
+    %antenna nominal pointing direction history in Cartesian coords
+    [out.pnt] = pointer(spp,tilt);
+
     %propagate velocity vector
     spv(:,1) = spp(:,1) + pi/2;             %perpendicular to radius
     spv(:,2) = 0;                           %change in elevation
@@ -69,8 +72,9 @@ if ismember("orbiter",type) == 1
     n = 2*pi/T;                   %[rad/s] mean motion parameter
     
     %initialise position and velocity matrices
-    pos = zeros(length(time),3);
-    vel = zeros(length(time),3);
+    spp = zeros(length(time),3);  %[rad,rad,km]
+    pos = zeros(length(time),3);  %[km,km,km]
+    vel = zeros(length(time),3);  %[km/s,km/s,km/s]
     
     %propagate true anomaly
     keps(1,1:6) = state;
@@ -101,6 +105,10 @@ if ismember("orbiter",type) == 1
         pos(i,:) = p';
         vel(i,:) = v';
     end
+    
+    % antenna nominal pointing direction history in Cartesian coords
+    [spp(:,1),spp(:,2),spp(:,3)] = cart2sph(pos(:,1),pos(:,2),pos(:,3));
+    [out.pnt] = pointer(spp,tilt);
     
     %Outputs for orbiter
     out.pos = pos;               %[km] Cartesian position vector

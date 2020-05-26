@@ -10,19 +10,19 @@ addpath('Output Files')
 % revisited later to check accuracy and suitability.
 
 %% INPUTS
-orb_alts = 200:200:5000;              %[km] altitude range of interest
+orb_alts = 1000:200:2000;              %[km] altitude range of interest
 a = orb_alts + astroConstants(24);     %[km] semi-major axis range of interest
 keps = zeros(length(a),6);              %[km & rads] 
 keps(:,1) = 1*a';                       %[km & rads]
-inc = 20;
-keps(:,3) = pi/(180/inc);   % 15 degree inclincation
+inc = 0;
+keps(:,3) = deg2rad(inc);   % 15 degree inclincation
 
 lats = 0:3:30;
 ustat = zeros(length(lats),2);
 ustat(:,1) = 1*lats';              %[deg lat, deg long] typical user position
 ustat = deg2rad(ustat);            %degrees to radians
 
-dt = 60; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
+dt = 60; sols = 3; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
 sit = 1;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
 frq = 401.6e6;    %[Hz] carrier signal frequency
 freq = 'UHF';
@@ -31,11 +31,11 @@ powt = 10;       %[W] ground user RF power emitted
 %Custom Antennas
 custt.type = 'helical';
 custt.gain_peak = 5;
-custt.HPBW = 75;
+custt.HPBW = 60;
 custt.plotting = 0;
 custr.type = 'helical';
-custr.gain_peak = 10;
-custr.HPBW = 45;
+custr.gain_peak = 5;
+custr.HPBW = 60;
 custr.plotting = 0;
 
 hard = sys_hard(0,0,custt,custr,'elec',290,[0 0]);
@@ -59,7 +59,7 @@ S(1) = load('chirp'); sound(S(1).y,S(1).Fs); toc
 %% POST-PROCESSING
 %Load information from file if required 
 %load('Output Files\???')
-plots = zeros(length(lats),length(out),6);
+plots = zeros(length(lats),length(orb_alts),6);
 plots(:,:,1) = res(:,:,5)./sols;               %[Gb/sol] Daily data transfer
 plots(:,:,2) = res(:,:,5)./res(:,:,3)./sols;   %[Gb/kJ/sol] Transfer Efficiency
 plots(:,:,3) = res(:,:,6)./sols;               %[hrs/sol] Visible Time

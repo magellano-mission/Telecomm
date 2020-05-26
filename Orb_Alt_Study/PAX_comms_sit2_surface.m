@@ -10,8 +10,8 @@ addpath('Output Files')
 % revisited later to check accuracy and suitability.
 
 %% INPUTS
-orb_alts = 500:250:10000;              %[km] altitude range of interest
-incs = 0:5:90;                        %[degrees] RS inclination range of interest
+orb_alts = 4300:20:4500;              %[km] altitude range of interest
+incs = -25:5:25;                        %[degrees] RS inclination range of interest
 inc = deg2rad(incs);
 a = orb_alts + astroConstants(24);     %[km] semi-major axis range of interest
 keps = zeros(length(orb_alts),length(inc),6);              %[km & rads] 
@@ -23,11 +23,11 @@ for jj = 1:length(orb_alts)
     end
 end
 
-ustat = [300,0,75,0,0,0];             %[km alt & degrees] typical user position
-ustat(1) = ustat(1) + astroConstants(24);
-ustat(2:6) = deg2rad(ustat(2:6));     %degrees to radians
+ustat = [4900,0,deg2rad(-25),0,0,0];             %[km alt & degrees] typical user position
+%ustat(1) = ustat(1) + astroConstants(24);
+%ustat(2:6) = deg2rad(ustat(2:6));     %degrees to radians
 
-dt = 30; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
+dt = 60; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
 sit = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
 frq = 8490e6;    %[Hz] carrier signal frequency
 freq = 'X band';
@@ -64,7 +64,7 @@ S(1) = load('chirp'); sound(S(1).y,S(1).Fs); toc
 %% POST-PROCESSING
 %Load information from file if required 
 %load('Output Files\???')
-plots = zeros(length(incs),length(out),6);
+plots = zeros(length(incs),length(orb_alts),6);
 plots(:,:,1) = res(:,:,5)./sols;               %[Gb/sol] Daily data transfer
 plots(:,:,2) = res(:,:,5)./res(:,:,3)./sols;   %[Gb/kJ/sol] Transfer Efficiency
 plots(:,:,3) = res(:,:,6)./sols;               %[hrs/sol] Visible Time

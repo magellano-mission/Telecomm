@@ -75,6 +75,9 @@ else
     [hard.gainr] = basic_antenna(custr.type,custr.gain_peak, custr.HPBW, custr.plotting);
 end
 
+hard.tiltt = deg2rad(custt.tilt);
+hard.tiltr = deg2rad(custr.tilt);
+
 %% ANTENNA POINTING
 hard.point = point;
 %% CONTROLLER OPTIONS
@@ -82,7 +85,7 @@ hard.point = point;
 elec.powr = [-170 -100];    %[dBW] Acceptable signal power range to feed Electra
 elec.symmax = 2.048e6;      %[symbols/sec]
 elec.symmin = 1000;         %[symbols/sec]
-elec.M = 2;                 %[bit/sym] Max modulation efficiency
+elec.M = 4;                 %[bit/sym] Max modulation efficiency
 elec.R = 0.5;               %[-] Error coding efficiency
 elec.cgain = 6.6;            %[dB] Error coding gain
 elec.BW = elec.symmax/1.7;     %[Hz] Electra bandwidth with ballpark correction factor
