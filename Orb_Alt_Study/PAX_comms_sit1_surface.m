@@ -1,6 +1,6 @@
 
 %% SET UP
-clearvars; clc; close all;
+clearvars; clc; %close all;
 format compact
 addpath('Antenna Gain Curves')
 addpath('Supporting Functions')
@@ -10,20 +10,22 @@ addpath('Output Files')
 % revisited later to check accuracy and suitability.
 
 %% INPUTS
-orb_alts = 200:100:3000;              %[km] altitude range of interest
+orb_alts = 3000;              %[km] altitude range of interest
 a = orb_alts + astroConstants(24);     %[km] semi-major axis range of interest
 keps = zeros(length(a),6);              %[km & rads] 
 keps(:,1) = 1*a';                       %[km & rads]
-inc = -25;
+inc = 0;
 keps(:,3) = deg2rad(inc);   % 15 degree inclincation
 
-lats = -30:2.5:30;
+lats = 0:3:30;
 ustat = zeros(length(lats),2);
 ustat(:,1) = 1*lats';              %[deg lat, deg long] typical user position
 ustat = deg2rad(ustat);            %degrees to radians
 
-dt = 60; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
-sit = 1;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+dt = 60; sols = 3; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
+sit.cas = 1;   %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+sit.ops = 1;   %[-] 0 - nominal conditions, 1 - worst case conditions 
+sit.pol = 0;
 frq = 8490e6;    %[Hz] carrier signal frequency
 freq = 'X band';
 powt = 10;        %[W] ground user RF power emitted
@@ -32,11 +34,11 @@ powt = 10;        %[W] ground user RF power emitted
 custt.type = 'phased array';
 custt.gain_peak = 21.3;
 custt.HPBW = 2.7;
-custt.tilt = [0 0];         %[deg] tilt from zenith in [ele azi] spherical directions
+custt.tilt = [0 0];         %[deg] tilt from zenith in [azi ele] spherical directions
 custt.plotting = 0;
 custr.type = 'phased array';
 custr.gain_peak = 21.3;
-custr.HPBW = 2.7;           %[deg] tilt from nadir in [ele azi] spherical directions
+custr.HPBW = 2.7;           %[deg] tilt from nadir in [azi ele] spherical directions
 custr.tilt = [0 0];
 custr.plotting = 0;
 
@@ -68,49 +70,63 @@ plots(:,:,3) = res(:,:,6)./sols;               %[hrs/sol] Visible Time
 plots(:,:,4) = res(:,:,7)./sols;               %[hrs/sol] Downlink Time
 
 %% STUDY PLOTTING
-figure(1)
-colormap(winter)
-subplot(2,2,1)
-levels =  0:10:50;
-[C] = contour(orb_alts,lats,plots(:,:,1),levels);
-clabel(C,'FontSize',10)
-grid on
-ylabel('Gound User Latitude [degrees]')
-xlabel('Orbiter Altitude [km]')
-title('Daily Data Transfer [Gb]')
-zlim([0 inf])
-
-subplot(2,2,2)
-levels =  0:50:300;
-[C] = contour(orb_alts,lats,plots(:,:,2)*1000,levels);
-clabel(C,'FontSize',10)
-grid on
-ylabel('Gound User Latitude [degrees]')
-xlabel('Orbiter Altitude [km]')
-title('Data Transfer Efficiency [Mb/kJ/sol]')
-zlim([0 inf])
-
-subplot(2,2,3)
-levels = 0:2:24;
-%surf(orb_alts,lats,plots(:,:,3),'FaceColor','b')
-[C] = contour(orb_alts,lats,plots(:,:,3),levels);
-clabel(C,'FontSize',10)
-grid on
-ylabel('Gound User Latitude [degrees]')
-xlabel('Orbiter Altitude [km]')
-title('Daily Visibility to RS [hrs]')
-%hold on
-%surf(orb_alts,lats,plots(:,:,4),'FaceColor','r')
+%figure(1)
+%colormap(winter)
+%subplot(2,2,1)
+%levels =  2:4:30;
+%[C,h] = contour(orb_alts,lats,plots(:,:,1),levels,'LabelSpacing',500);
+%clabel(C,h,'FontSize',10)
+%grid on
+%ylabel('Gound User Latitude [degrees]')
+%ylim([0 30])
+%xlabel('Orbiter Altitude [km]')
+%title('Daily Data Transfer [Gb]')
 %zlim([0 inf])
-%legend('Visible Time','Downlink Time','Location','southeast')
-hold off
 
-sgtitle({powt+"W (RF) User with "+custt.gain_peak+"dBi peak gain "+freq+" antenna", ...
-        inc+" degree inclination orbiter with "+custr.gain_peak+"dBi gain "+freq+" antenna"}) 
+%subplot(2,2,2)
+%levels =  0:25:100;
+%[C,h] = contour(orb_alts,lats,plots(:,:,2)*1000,levels,'LabelSpacing',600);
+%clabel(C,h,'FontSize',10)
+%grid on
+%ylabel('Gound User Latitude [degrees]')
+%ylim([0 30])
+%xlabel('Orbiter Altitude [km]')
+%title('Data Transfer Efficiency [Mb/kJ/sol]')
+%zlim([0 inf])
 
-fig=gcf;
-fig.Units='normalized';
-fig.OuterPosition=[0 0 1 1];
+%subplot(2,2,3)
+%levels = 0:1:24;
+%[C,h] = contour(orb_alts,lats,plots(:,:,3),levels);
+%clabel(C,h,'FontSize',10)
+%grid on
+%ylabel('Gound User Latitude [degrees]')
+%ylim([0 30])
+%xlabel('Orbiter Altitude [km]')
+%title('Daily Visibility to RS [hrs]')
+
+%subplot(2,2,4)
+%levels = 0:1:24;
+%[C,h] = contour(orb_alts,lats,plots(:,:,4),levels);
+%clabel(C,h,'FontSize',10)
+%grid on
+%ylabel('Gound User Latitude [degrees]')
+%ylim([0 30])
+%xlabel('Orbiter Altitude [km]')
+%title('Daily Downlink to RS Availability [hrs]')
+
+%sgtitle({powt+"W (RF) User with "+custt.gain_peak+"dBi peak gain "+freq+" antenna", ...
+%        inc+" degree inclination orbiter with "+custr.gain_peak+"dBi gain "+freq+" antenna"}) 
+
+%fig=gcf;
+%fig.Units='normalized';
+%fig.OuterPosition=[0 0 1 1];
+
+hold on
+plot(lats,plots(:,1,1))
+xlabel('Surface User Latitude [degrees]')
+ylabel('Data Return [Gb]')
+grid on
+
 
 %% BREAK
 return

@@ -1,4 +1,4 @@
-function [hard] = sys_hard(antt,antr,custt,custr,cont,T_amb,point)
+function [hard] = sys_hard(antt,antr,custt,custr,cont,T_amb,point,sit)
 %% PURPOSE
 %This function collects the relevant options and information about the
 % possible hardware selection options
@@ -19,6 +19,7 @@ function [hard] = sys_hard(antt,antr,custt,custr,cont,T_amb,point)
 
 %% ANTENNA SELECTION
 if isstruct(custt) == 0
+    hard.tiltt = [0,0];
     switch antt
         case 'PAX'
             hard.gaint = PAX;
@@ -44,9 +45,13 @@ if isstruct(custt) == 0
             hard.gaint = DSN34Ka;
     end
 else
-    [hard.gaint] = basic_antenna(custt.type,custt.gain_peak, custt.HPBW, custt.plotting);
+    [hard.gaint] = basic_antenna(custt.type,custt.gain_peak,custt.HPBW,custt.plotting);
+    hard.tiltt = deg2rad(custt.tilt);
+    hard.limst = deg2rad(custt.lims);
+    hard.dirt = custt.dir;
 end
 if isstruct(custr) == 0
+    hard.tiltr = [0,0];
     switch antr
         case 'PAX'
             hard.gainr = PAX;
@@ -73,10 +78,13 @@ if isstruct(custr) == 0
     end
 else
     [hard.gainr] = basic_antenna(custr.type,custr.gain_peak, custr.HPBW, custr.plotting);
+    hard.tiltr = deg2rad(custr.tilt);
+    hard.limsr = deg2rad(custr.lims);
+    hard.dirr = custr.dir;
 end
 
-hard.tiltt = deg2rad(custt.tilt);
-hard.tiltr = deg2rad(custr.tilt);
+
+
 
 %% ANTENNA POINTING
 hard.point = point;
@@ -95,7 +103,12 @@ elec.Ts = T_amb*(10^(elec.F/10)-1);   %[K] System effective noise temperature
 
 %SDST specifications for X and Ka band baseline
 sdst.powr = [-188 -100];     %[dBW] Acceptable signal power range to feed SDST
-sdst.symmax = 15e6;          %[symbols/sec]
+if sit.cas == 1
+    sdst.symmax = 15e6;          %[symbols/sec]
+end
+if sit.cas == 2 || 3
+    sdst.symmax = 50e6;
+end
 sdst.symmin = 1000;          %[symbols/sec]
 sdst.M = 4;                  %[bit/sym] Max modulation efficiency (BPS,QPS,etc)
 sdst.R = 0.5;                %[-] Error coding efficiency
@@ -107,14 +120,20 @@ sdst.Ts = T_amb*(10^(sdst.F/10)-1);   %[K] System effective noise temperature
 
 %DSN specifications for X and Ka band baseline
 dsn.powr = [-300 -50];
-dsn.symmax = 15e6;
+dsn.symmax = 50e6;
 dsn.symmin = 1000;
 dsn.M = 4;
 dsn.R = 0.5;
-dsn.cgain = 10; %6.6;            
+dsn.cgain = 9; %6.6;            
 dsn.BW = dsn.symmax / 1.7;
 dsn.P = 'circ';
-dsn.Ts = 20;
+if sit.ops == 0
+    dsn.Ts = 30;
+end
+if sit.ops == 1
+    dsn.Ts =70;
+end
+
 
 %% CONTROLLER SELECTION
 switch cont

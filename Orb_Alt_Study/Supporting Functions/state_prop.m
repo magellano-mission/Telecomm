@@ -8,7 +8,7 @@ function [out] = state_prop(type,state,time,sit,tilt)
 %% INPUTS
 %type      - [str] 'ground' or 'orbiter'
 %state     - [rad & km] initial latitude and longitude for ground users, or
-             %vector of initial keplerian elements for orbiters
+             % vector of initial keplerian elements for orbiters
 %time      - [s] time vector over which to evaluate
 %sit       - [-] 1 - Mars ground user to Mars orbiter, 2 - Mars orbiter to
                     %Mars orbiter, 3 - Mars to Earth
@@ -58,9 +58,9 @@ if ismember("ground",type) == 1
    [vel(:,1),vel(:,2),vel(:,3)] = sph2cart(spv(:,1),spv(:,2),spv(:,3));
    
    %Outputs for ground user
-   out.pos = pos;                   %[km] Cartesian position vector
-   out.vel = vel;                   %[km] Cartesian velocity vector
-   %out.ang = spp(:,1);              %[rad] Azimuth w.r.t Mars centre
+   out.pos = pos*1000;                   %[m] Cartesian position vector
+   out.vel = vel*1000;                   %[m] Cartesian velocity vector
+   out.dis = sqrt(sum(out.pos'.^2))';    %[m] distance from Mars centre
     
 end
     
@@ -111,8 +111,9 @@ if ismember("orbiter",type) == 1
     [out.pnt] = pointer(spp,tilt);
     
     %Outputs for orbiter
-    out.pos = pos;               %[km] Cartesian position vector
-    out.vel = vel;               %[km/s] Cartesian velocity vector
-    out.anm = keps(:,6);         %[rad] true anomaly of orbiter
+    out.pos = pos*1000;               %[m] Cartesian position vector
+    out.vel = vel*1000;               %[m/s] Cartesian velocity vector
+    out.anm = keps(:,6);              %[rad] true anomaly of orbiter
+    out.dis = sqrt(sum(out.pos'.^2))';%[m] orbiter distance from focus
 end
 

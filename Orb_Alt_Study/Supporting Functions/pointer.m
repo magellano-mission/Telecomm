@@ -11,8 +11,8 @@ function [pnt_cart] = pointer(pos_spher,tilt)
 % tilt      - [rad,rad]    tilts to be applied in the lat/elevation and
 %                          long/azimuth directions
 
-pnt = ones(length(pos_spher));
+pnt = ones(length(pos_spher),3);
 pnt(:,1) = pos_spher(:,1) + tilt(1);
 pnt(:,2) = pos_spher(:,2) + tilt(2);
 
-[pnt_cart(1,:),pnt_cart(2,:),pnt_cart(3,:)] = sph2cart(pnt(:,1),pnt(:,2),pnt(:,3));
+[pnt_cart(:,1),pnt_cart(:,2),pnt_cart(:,3)] = sph2cart(pnt(:,1),pnt(:,2),pnt(:,3));

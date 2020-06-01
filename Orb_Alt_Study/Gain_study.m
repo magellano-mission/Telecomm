@@ -1,5 +1,5 @@
 %% SET UP
-clearvars; clc; close all;
+clearvars; clc; %close all;
 format compact
 addpath('Antenna Gain Curves')
 addpath('Supporting Functions')
@@ -11,69 +11,79 @@ addpath('Supporting Functions')
 %% Environment parameters
 T_amb = 290;       %[K] Assumed ambient temperature (STANDARD - REVISIT)
 T_ant = 20;        %[K] Assumed antenna temperature in space (REVISIT)
-dt = 30;                  %[s] time step
-t = 0: dt : 3*88620;      %[s] Mars day = 88620, Earth day = 86400
+dt = 60;                  %[s] time step
+t = 0: dt : 0.5*88620;      %[s] Mars day = 88620, Earth day = 86400
 a_Earth = astroConstants(2);
 a_Mars  = 1.52*a_Earth;
 
 
-%% (PROOF) CASE 1 - MRO/Curiosity UHF at 401.6 MHz
+%% INPUTS
+rstat = [4900,0,0,0,0,0];            
+tstat = [4900,0,deg2rad(90),0,0,0];
+%tstat = [deg2rad(0) 0];
 
-%ustat1 = [90,0];
-%ustat1 = deg2rad(ustat1);    %degrees to radians
+sit1.cas = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+sit1.ops = 1;           %[-] 0 - nominal conditions, 1 - worst case conditions
 
-keps1 = [6400,0.4,deg2rad(-25),0,0,0];             %[km alt & degrees] typical user position
-%ustat1(1) = ustat1(1) + astroConstants(24);
-%ustat1(2:6) = deg2rad(ustat1(2:6));     %degrees to radians
-
-ustat1 = [5700,0,deg2rad(-25),0,0,pi/4];    %[km,deg,deg,deg,deg,deg]
-                             %[a,e,i,OM,om,th]
-
-%keps1(:,2:6) = deg2rad(keps1(:,2:6));           %degrees to radians
-%keps1(:,1)   = keps1(:,1) + astroConstants(24); %altitude to radius in [km]
-sit1 = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter 
-                   % to Mars orbiter, 3 - Mars to Earth (generic)
 frq1 = 8400e6;    %[Hz] carrier signal frequency
-powt1 = 25;        %[W] ground user RF power emitted
+powt1 = 30;        %[W] ground user RF power emitted
 
 %Custom Antennas
 custt.type = 'phased array';
-custt.gain_peak = 27.3;
-custt.HPBW = 1;
+custt.gain_peak = 24.3;     %[dBi]
+custt.HPBW = 2.7;
+custt.dir = -1;              %[-] 1 zenith pointing, -1 nadir pointing
+custt.tilt = [0 -45];         %[deg] tilt in [azim elev] spherical directions
+custt.lims = [-60 60];      %[deg] steering limits
 custt.plotting = 0;
 custr.type = 'phased array';
-custr.gain_peak = 27.3;
-custr.HPBW = 1;
+custr.gain_peak = 24.3;     %[-] 1 zenith pointing, -1 nadir pointing
+custr.HPBW = 2.7;
+custr.dir = -1;             %[-] 1 zenith pointing, -1 nadir pointing
+custr.tilt = [0 45];         %[deg] tilt in [azim elev] spherical directions
+custr.lims = [-60 60];      %[deg] steering limits
 custr.plotting = 0;
 
-hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);
+hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0],sit1);
 
-%Run the function and output graphs and totals
+%% FUNCTION
 tic
-[rows,~] = size(keps1);
-
-for i = 1:rows
-    [Cur_UHF] = pass_over(sit1,frq1,powt1,hard,keps1(i,:),ustat1,t,dt,1);
-    if i == 1
-        hold on
-    end
-end
-hold off
+[recv,trans,tots] = pass_over(sit1,frq1,powt1,hard,rstat,tstat,t,dt,0);
 toc
 
-%% (PROOF) CASE 3 - MRO to Earth
-%ustat3 = [a_Mars,0,0,0,0,0];
-%keps3 = [a_Earth,0,0,0,0,0];     %[km,deg,deg,deg,deg,deg]
-                                 %[a,e,i,OM,om,th,mu]
-%sit3 = 3;          %[-] 1 - Mars ground to Mars orbiter, %2 - Mars orbiter 
-                   % to Mars orbiter, 3 - Mars to Earth (generic)
-%cas3 = 3;          %[-] case number
-%frq3 = 8440e6;     %[Hz] carrier signal frequency
-%powt3 = 100;        %[W] ground user RF power emitted
-%BW3 = 5e5;         %[Hz] Bandwidth
-%point3 = [1 1];    %[tran recv] 1 - antenna steered, 0 - not steered
-%Run the function and output graphs and totals
-%[MRO_ME] = pass_over(0,sit3,cas3,frq3,powt3,dsn,keps3,ustat3,t,dt,point3,...
-                  %S_HGA_X,DSN_MGA_X,'Mars to Earth',BW3,1);
+myVideo = VideoWriter('movie');
+myVideo.FrameRate = 1;
+open(myVideo);
 
-%% CASE 3 - Something to do with Phased array antennas ???
+figure (1)
+hold on
+[x,y,z] = sphere(25);
+surf(x*3390*1000,y*3390*1000,z*3390*1000,'facecolor',[0.9290, 0.6940, 0.1250]);
+xlim([-4900000 4900000]);
+ylim([-4900000 4900000]);
+zlim([-4900000 4900000]);
+set(gca,'visible','off')
+axis equal
+
+
+ for i = 1:length(recv.st.pos)
+     pol(i) = plot3(recv.st.pos(i,1),recv.st.pos(i,2),recv.st.pos(i,3),'bo','MarkerSize',2);
+     eq(i) = plot3(trans.st.pos(i,1),trans.st.pos(i,2),trans.st.pos(i,3),'ro','MarkerSize',2);
+     y = plot3([recv.st.pos(i,1) trans.st.pos(i,1)], [recv.st.pos(i,2) trans.st.pos(i,2)], [recv.st.pos(i,3) trans.st.pos(i,3)],'k','LineWidth',1);
+     view([12e6 3e6 3e6])
+     frame = getframe(gcf);
+     writeVideo(myVideo,frame);
+     pause(0.01)  
+     if i < length(recv.st.pos)
+        delete(y)
+     end
+     if i > 100
+         delete(pol(1:i-100))
+         delete(eq(1:i-100))
+     end
+
+ end
+ %plot3(recv.st.pos(i,1),recv.st.pos(i,2),recv.st.pos(i,3),'ob','MarkerSize',5,'LineWidth',5)
+ %plot3(trans.st.pos(i,1),trans.st.pos(i,2),trans.st.pos(i,3),'or','MarkerSize',5,'LineWidth',5)
+ 
+

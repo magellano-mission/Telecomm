@@ -8,7 +8,7 @@ G_bor = [0 68.41;
 
 if plotting == 1
 end
-G_bor(:,2) = G_bor(:,2) + 6.3;
+G_bor(:,2) = G_bor(:,2) + 11.6;
 G_bor(:,1) = deg2rad(G_bor(:,1));
 DS_HGA_Ka.lim = G_bor(end,1);
 DS_HGA_Ka.bor = fit(G_bor(:,1),G_bor(:,2),'poly2');

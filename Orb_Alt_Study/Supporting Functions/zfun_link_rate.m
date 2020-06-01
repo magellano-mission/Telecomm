@@ -1,4 +1,4 @@
-function [out] = zfun_link_rate(frq,rang,powt,cont,G_t,G_r,dt,sit)
+function [out] = zfun_link_rate(frq,rang,ele,powt,cont,G_t,G_r,dt,sit)
 %% PURPOSE
 %This function takes inputs relating to the link and hardware, calculates a
 %link budget and then assigns a data rate based on the CNR and contware
@@ -7,6 +7,7 @@ function [out] = zfun_link_rate(frq,rang,powt,cont,G_t,G_r,dt,sit)
 %% INPUTS
 %frq       - [Hz]  Carrier wave frequency
 %rang      - [m]   Transmission range
+%ele       - [rad] elevation above horizon
 %powt      - [W]   Transmitted RF power
 %cont.powr - [W,W] Minimum and maximum signal power limits of receiver
 %cont.M    - [-,-] Range of modulation efficiencies
@@ -20,35 +21,64 @@ function [out] = zfun_link_rate(frq,rang,powt,cont,G_t,G_r,dt,sit)
 %dt        - [s]   Time step
 %sit       - [-]   1 - Mars atmosphere, 2 - No atmosphere, 3 - Earth atmosphere
 
+
 %% ATMOSPHERIC LOSSES
-if frq < 500e6      %UHF frequency range
-    switch sit
+%UHF frequency range
+if frq < 500e6      
+    switch sit.cas
         case 1      %Martian atmospheric losses
-            mrg_atm = -0.5;
+            if sit.ops == 0     %nominal conditions
+                mrg_atm = 0;    %[dB]
+            end
+            if sit.ops == 1     %dust storm
+                mrg_atm = -0.1; %[dB]
+            end
         case 2      %No losses (S/C to S/C)
             mrg_atm = 0;
-        case 3      %Earth rain fade (NEED TO CHECK)
-            mrg_atm = -3;
     end
 end
-if frq > 4e9 && frq < 12e9 %X band frequency range
-    switch sit
+
+%X band frequency range
+if frq > 4e9 && frq < 12e9 
+    switch sit.cas
         case 1      %Martian atmospheric losses
-            mrg_atm = - 1.15;
+            if sit.ops == 0     %nominal conditions
+                mrg_atm = -0.05/sin(ele);  %[dB]
+            end
+            if sit.ops == 1     %dust storm
+                mrg_atm = -1.15/sin(ele);  %[dB]
+            end
         case 2      %No losses (S/C to S/C)
             mrg_atm = 0;
-        case 3      %Earth X (NEED TO CHECK)
-            mrg_atm = -1;  %not including rain fade
+        case 3      %Earth atmospheric losses
+            if sit.ops == 0     %nominal conditions, 45 deg elevation
+                mrg_atm = -0.05/sin(pi/4);
+            end
+            if sit.ops == 1     %rainy, 10 deg elevation
+                mrg_atm = -0.4/sin(pi/18);
+            end
     end
 end
-if frq > 30e9 && frq < 40e9 %Ka band frequency range
-    switch sit
+
+%Ka band frequency range
+if frq > 30e9 && frq < 40e9 
+    switch sit.cas
         case 1      %Martian atmospheric losses
-            mrg_atm = - 3.35;
+            if sit.ops == 0     %nominal  conditions
+                mrg_atm = -0.35/sin(ele);  %[dB]
+            end
+            if sit.ops == 1     %dust storm 
+                mrg_atm = -3.35/sin(ele);  %[dB]
+            end
         case 2      %No losses (S/C to S/C)
             mrg_atm = 0;
-        case 3      %Earth Ka (NEED TO CHECK)
-            mrg_atm = -2;   %not including rain fade
+        case 3      %Earth atmospheric losses
+            if sit.ops == 0     %nominal conditions, 45 deg elevation
+                mrg_atm = -0.2/sin(pi/4);   %[dB]
+            end
+            if sit.ops == 1     %rainy, 10 deg elevation
+                mrg_atm = -4/sin(pi/9);    %[dB]
+            end
     end
 end
 
@@ -56,7 +86,7 @@ end
 lambda = physconst('LightSpeed')/frq;    %[m] wavelength of signal
 
 %Link budget margins
-mrg_op = -1;          %[dB] typical operating margin applied
+mrg_op = -2;          %[dB] typical operating margin
 mrg_bo = -1;          %[dB] typical transponder back-off
 mrg_pol = 0;          %[dB] polarisation loss
 
@@ -114,6 +144,7 @@ if PdB_r >= cont.powr(1) && PdB_r <= cont.powr(2)
     end
 else
     %Otherwise transmission is not possible
+    ENdB = NaN;
     CNRdB = NaN;
     rate = 0;
 end
@@ -124,5 +155,6 @@ out.PdB   = PdB_r;                %[dBW] Received power
 out.P_W   = PW_r;                 %[W]   Received power raw
 out.dE    = out.P_W * dt;         %[J]   Received energy in time step
 out.CNRdB = CNRdB;                %[dB]  log10 of CNR power ratio
+out.ENdB = ENdB;                  %[dB]  log10 of bit energy to noise ratio
 out.datrat = rate;                %[bits/s] rate of useful information transfer
 out.data = rate*dt;               %[bit] volume of data transferred in time step

@@ -25,7 +25,7 @@ keps2(:,1) = 1*a2';                       %[km & rads]
 keps2(:,3) = deg2rad(0);
 
 
-dt = 60; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
+dt = 60; sols = 1; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
 sit = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
 frq = 8490e6;    %[Hz] carrier signal frequency
 powt = 25;        %[W] ground user RF power emitted

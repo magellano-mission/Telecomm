@@ -18,26 +18,34 @@ keps_e = [orb_alt_e 0 0 0 0 0];       %[km & rads]
 
 dt = 86400; days = 365*2.135; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
 %dt = 60; days = 1; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
-sit = 3;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+sit.cas = 3;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+sit.ops = 1;
+sit.pol = 0;
 frq = 32e9;    %[Hz] carrier signal frequency
-powt = 275;        %[W] use user RF power emitted
+powt = 200;        %[W] use user RF power emitted
 
 %Custom Antennas
 custt.type = 'parabolic';
-custt.gain_peak = 61;
+custt.gain_peak = 61.5;
 custt.HPBW = 0.3;
+custt.dir = 1;              
+custt.tilt = [0 0];
+custt.lims = [-inf inf];
 custt.plotting = 0;
-%custr.type = 'parabolic';
-%custr.gain_peak = 8;
-%custr.HPBW = 60;
-%custr.plotting = 0;
+custr.type = 'parabolic';
+custr.gain_peak = 80.1;
+custr.HPBW = 0.3;
+custr.dir = 1;              
+custr.tilt = [0 0];
+custr.lims = [-inf inf];
+custr.plotting = 0;
 
-hard = sys_hard(0,'DSN34Ka',custt,0,'dsn',290,[1 1]);
+hard = sys_hard(0,0,custt,custr,'dsn',290,[1 1],sit);
 hard.cont.symmax = 50e6;
 hard.cont.BW = hard.cont.symmax / 2;
 hard.cont.M = 4;
 
-%hold on
+hold on
 %% FUNCTION
 tic; out = struct; %res = zeros(length(keps_m),7);
 

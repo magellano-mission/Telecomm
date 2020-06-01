@@ -1,18 +1,17 @@
-function [recv,res] = pass_over(sit,frq,powt,hard,keps,ustat,t,dt,plots)
+function [recv,tr,res] = pass_over(sit,frq,powt,hard,rstat,tstat,t,dt,plots)
 %% PURPOSE
 %This function takes inputs about the transmission method, hardware,
 %spacecraft, land vehicles and planets being considered and reports plots
 %and total values for some criteria.
 
 %% INPUTS
-%sit    - [-]       1 - Mars ground to orbiter, 2 - Mars orbiter to
+%sit.cas    - [-]       1 - Mars ground to orbiter, 2 - Mars orbiter to
                     %orbiter, 3 - Mars to Earth
 %frq    - [Hz]      Carrier wave frequency
 %powt   - [W]       Transmitted RF power
 %hard.powr   - [W,W]     Minimum and maximum signal power limits of receiver
-%keps   - [km,rad]  Keplerian elements of orbits to be studied 
-%ustat  - [rad,rad] Initial latitude and longitude of ground user (MAY ADD VELOCITY IN THE FUTURE)
-%       - [km,rad] OR Keplerian elements for orbital vehicles or planets
+%rstat   - [km,rad]  Keplerian elements of receiver 
+%tstat  - [rad,rad] OR [km,rad] Initial latitude and longitude or keplerian elements of transmitter
 %t      - [s]       Vector of time span to be analysed
 %dt     - [s]       Time step
 %hard.gaint  - [dBi,rad] Gain vs angle curve of transmission antenna
@@ -24,160 +23,159 @@ function [recv,res] = pass_over(sit,frq,powt,hard,keps,ustat,t,dt,plots)
 %hard.P - [str]     Polarisation of receiver and signal 'lin' or 'cir'
 
 %% TRANSMITTER STATES
-if sit == 1     %Transmitter on Mars surface
-    %finding state for Mars ground user over the time vector
-    [tran] = state_prop('ground',ustat,t,sit,hard.tiltt);  %[km & km/s]
-    tran.pos = tran.pos*1000;               %[m] convert units
-    tran.vel = tran.vel*1000;               %[m/s] convert units
-    tran.pnt = tran.pnt';                    %[rad,rad,[-]]
-    %ground user absolute distance from Mars centre
-    tran.dis = sqrt(sum(tran.pos'.^2))';    %[m]
+if sit.cas == 1     %Transmitter on Mars surface
+    %finding states over time vector
+    [tr.st] = state_prop('ground',tstat,t,sit.cas,hard.tiltt);  %[km & km/s]
 end
 
-if sit == 2     %Transmitter in Mars orbit
-    %finding state for Mars orbital user over the time vector
-    [tran] = state_prop('orbiter',ustat,t,sit,hard.tiltt);  %[km & km/s]
-    tran.pos = tran.pos*1000;               %[m] convert units
-    tran.vel = tran.vel*1000;               %[m/s] convert units   
-    tran.pnt = tran.pnt';                    %[rad,rad,[-]]
-    %orbital user absolute distance from Mars centre
-    tran.dis = sqrt(sum(tran.pos'.^2))';    %[m]
+if sit.cas == 2     %Transmitter in Mars orbit
+    %finding states over time vector
+    [tr.st] = state_prop('orbiter',tstat,t,sit.cas,hard.tiltt);  %[km & km/s]
+    tr.st.pnt = hard.dirt * tr.st.pnt;
 end
 
-if sit == 3     %Transmitter 'is' Mars
-    %finding state for Mars over the time vector
-    [tran] = state_prop('orbiter',ustat,t,sit,hard.tiltt);  %[km & km/s]
-    tran.pos = tran.pos*1000;               %[m] convert units
-    tran.vel = tran.vel*1000;               %[m/s] convert units
-    tran.pnt = tran.pnt';                    %[rad,rad,[-]]
-    %planet absolute distance from Sun centre
-    tran.dis = sqrt(sum(tran.pos'.^2))';    %[m]
+if sit.cas == 3     %Transmitting from Mars to Earth
+    %finding states of Mars over the time vector
+    [tr.st] = state_prop('orbiter',tstat,t,sit.cas,hard.tiltt);  %[km & km/s]
 end
     
 %% ORBITAL USER STATES AND LINK CALCULATIONS
-
 %Intialising structures and counters
 recv = struct;
 sumEner = 0; sumData = 0; 
 cnt = -1;        %counter for intervals when a good connection is possible
 vis = -1;        %counter for when the user is visible to the system
+test1 = 0;
+test2 = 0;
 
-for i = 1:size(keps,1)
-    %Retrieving state vector history and the half-chord length with Mars surface
-    [out] = state_prop('orbiter',keps(i,:),t,sit,hard.tiltr); %[km & km/s]
-    recv(i).pos = out.pos*1000;         %[m,m,m] convert units
-    recv(i).vel = out.vel*1000;         %[m/s,m/s,m/s] convert units
-    recv(i).dis = sqrt(sum(recv(i).pos'.^2))';   %[m] orbiter to Mars Centre distance
-    recv(i).anm = out.anm;
-    recv(i).pnt = out.pnt';
-    
-    %Relative distance in non-rotating, Mars centre reference frame
-     recv(i).rel = recv(i).pos - tran.pos;         %[m] orbiter to ground  user relative position vector
-     recv(i).rng = sqrt(sum(recv(i).rel'.^2))';   %[m] range from orbiter to ground user
-     recv(i).rangrat = gradient(recv(i).rng,t);     %[m/s] range rate from orbiter to ground user
-     recv(i).dopfrq = frq.*(1 - recv(i).rangrat./physconst('LightSpeed')) - frq;
+for i = 1:size(rstat,1)
+    %Retrieving state vector and variable history
+    [recv(i).st] = state_prop('orbiter',rstat(i,:),t,sit.cas,hard.tiltr); %[km & km/s]
+     recv(i).st.rel = recv(i).st.pos - tr.st.pos;       %[m] receiver to transmitter relative position vector
+     recv(i).st.rng = sqrt(sum(recv(i).st.rel'.^2))';   %[m] range between receiver and transmitter
+     recv(i).st.rangrat = gradient(recv(i).st.rng,t);   %[m/s] range rate between receiver and transmitter
+     recv(i).st.dopfrq = frq.*(1-recv(i).st.rangrat./physconst('LightSpeed'))-frq;  %[Hz] Doppler shift
+     recv(i).st.pnt = hard.dirr * recv(i).st.pnt;
      
      %Initialising blank vectors
-     recv(i).ele  = NaN(length(t),1);      %local elevation
-     recv(i).dE   = zeros(length(t),1);    %time step energy transmission
-     recv(i).PdB  = NaN(length(t),1);      %received signal power
-     recv(i).CNR  = NaN(length(t),1);      %CNR
-     recv(i).datrat = zeros(length(t),1);  %time step data transmission
-     recv(i).data = zeros(length(t),1);
-     recv(i).pow = zeros(length(t),1);
+     recv(i).st.ele  = NaN(length(t),1);      %local elevation
+     recv(i).st.dE   = zeros(length(t),1);    %time step energy transmission
+     recv(i).st.PdB  = NaN(length(t),1);      %received signal power
+     recv(i).st.CNR  = NaN(length(t),1);      %CNR
+     recv(i).st.EbNo = NaN(length(t),1);      %Bit energy to noise ratio
+     recv(i).st.datrat = zeros(length(t),1);  %time step data rate
+     recv(i).st.data = zeros(length(t),1);    %time step data volume
+     recv(i).st.pow = zeros(length(t),1);     %time step operating power
 
      for j=1:length(t)
-            switch sit
-                case 1   %identifying variables of triangle and solving for elevation angle                
-                    a = recv(i).rng(j);      %Range, orbiter to ground user
-                    b = tran.dis(j);         %Distance, Mars centre to ground user distance
-                    c = recv(i).dis(j);      %Distance, Mars centre to orbiter distance
-                    C = acos((a^2 + b^2 -c^2)/(2*a*b));
+            switch sit.cas
+                case 1  %surface transmitter to orbital receiver
+                    % find receiver elevation from relative distance triangle
+                    [C] = elevate(recv(i).st.rng(j),tr.st.dis(j),recv(i).st.dis(j));
+                    % check if receiver sat is above surface user horizon
                     if C > pi/2
-                        recv(i).ele(j) = C - pi/2; %[rad] convert elevation to an angle w.r.t bore axis
-                        vis = vis + 1;
-                    else
-                        recv(i).rng(j) = NaN;
-                        recv(i).rangrat(j) = NaN;
-                        recv(i).dopfrq(j) = NaN;
+                        recv(i).st.ele(j) = C - pi/2; %[rad] elevation angle
+                        vis = vis + 1;                %transmitter is visible to receiver 
+                        test1 = 1;
+                    else % receiver is not visible
+                        recv(i).st.rng(j) = NaN;      %remove value
+                        recv(i).st.rangrat(j) = NaN;  %remove value
+                        recv(i).st.dopfrq(j) = NaN;   %remove value
                     end
-                case  2   %identifying variables of triangle and solving for elevation angle                
-                    a = recv(i).rng(j);      %Range, orbiter to ground user
-                    b = tran.dis(j);         %Distance, Mars centre to ground user distance
-                    c = recv(i).dis(j);      %Distance, Mars centre to orbiter distance
-                    C = acos((a^2 + b^2 -c^2)/(2*a*b));
-                    rho = sqrt((recv(i).dis(j)^2 - astroConstants(24)^2));
                     
-                    kk = 0;
-                    if C > pi/2
-                        recv(i).ele(j) = C - pi/2; %[rad] convert elevation to an angle w.r.t bore axis
+                case  2  %orbital transmitter to orbital receiver
+                    % find receiver elevation from relative distance triangle
+                    [C] = elevate(recv(i).st.rng(j),tr.st.dis(j),recv(i).st.dis(j));
+                    recv(i).st.ele(j) = C - pi/2;
+                    %ele_block = -asin(astroConstants(24)*1000/tr.st.dis(j)); % apex half angle
+                    % find distance when blocking by Mars occurs
+                    dis_block = sqrt(recv(i).st.dis(j)^2 - (astroConstants(24)*1000)^2) ...
+                        + sqrt(tr.st.dis(j)^2 - (astroConstants(24)*1000)^2);
+                    
+                    % check if range is compatible with visibility
+                    if recv(i).st.rng(j) < dis_block
+                    %if recv(i).st.ele(j) > ele_block
                         vis = vis + 1;
-                        kk = 1;
+                        test1 = 1;
+                    else  % satellites can't see each other
+                       recv(i).st.ele(j) = NaN;
+                       recv(i).st.rng(j) = NaN;
+                       recv(i).st.rangrat(j) = NaN;
+                       recv(i).st.dopfrq(j) = NaN;
                     end
-                    if C < pi/2 && recv(i).rng(j) < rho
-                        recv(i).ele(j) = pi/2 - C; %[rad] convert elevation to an angle w.r.t bore axis
-                        vis = vis + 1;
-                        kk = 1;
-                    end
-                    if kk == 0
-                        recv(i).rng(j) = NaN;
-                        recv(i).rangrat(j) = NaN;
-                        recv(i).dopfrq(j) = NaN;
-                    end    
-                case 3
-                    recv(i).ele(j) = pi/2;
-                    a = recv(i).rng(j);
+                    
+                case 3  % assuming Earth always visible to ECS
+                    recv(i).st.ele(j) = pi/2;
+                    test1 = 1;
+                    test2 = 1;
             end
             
-            % Mainly for case 2, checking that the higher orbiter is within
-            % view of the upper/rear of the lower orbiter
-            if recv(i).ele(j) > 0 && recv(i).ele(j) < pi
+            % If visibility conditions are satisfied
+            if test1 == 1
+                gt_el = NaN; gr_el = NaN;
+                
+                % if antennas are pointed towards each other   
+                if test2 == 0 && dot(tr.st.pnt(j,:),recv(i).st.pnt(j,:)) <= 0 || sit.cas == 3
             
-                %Find gain of transmission antenna
-                switch hard.point(1)
-                    case 0          %transmission antenna is unpointed
-                        %borang = abs(recv(i).ele(j) - pi/2);
-                        borang = atan2(norm(cross(recv(i).rel(j,:),tran(i).pnt(j,:))),dot(recv(i).rel(j,:),tran(i).pnt(j,:)));
-                        gt_el = hard.gaint.bor(borang);    %[dBi]
-                    case 1          %transmission antenna is pointed
-                        gt_el = hard.gaint.bor(0);
+                    %Find gain of transmission antenna
+                    switch hard.point(1)
+                        case 0          %transmission antenna is unpointed
+                            borang = atan2(norm(cross(recv(i).st.rel(j,:),tr.st.pnt(j,:))),...
+                                                  dot(recv(i).st.rel(j,:),tr.st.pnt(j,:)));
+                            if borang >= hard.limst(1) && borang <= hard.limst(2)
+                                gt_el = hard.gaint.bor(borang);    %[dBi]
+                            else
+                                gt_el = NaN;
+                            end
+                            
+                        case 1          %transmission antenna is pointed
+                            gt_el = hard.gaint.bor(0);
+                    end
+            
+                    %Find gain of receiver antenna
+                    switch hard.point(2)
+                        case 0          %receiver antenna is unpointed
+                                        %relative position vector is reversed
+                            borang = atan2(norm(cross(-recv(i).st.rel(j,:),recv(i).st.pnt(j,:))),...
+                                                  dot(-recv(i).st.rel(j,:),recv(i).st.pnt(j,:)));
+                            if borang >= hard.limsr(1) && borang <= hard.limsr(2)
+                                gr_el = hard.gainr.bor(borang);    %[dBi]
+                            else
+                                gr_el = NaN;
+                            end
+                        case 1          %receiver antenna is pointed
+                            gr_el = hard.gainr.bor(0);
+                        case 3          %ECS receiver is an unpointed prism
+                            % calculate the angle between ECS and RS in
+                            % abosolute, non-rotating coordinates
+                            ang = wrapTo2Pi(atan2(recv(i).st.rel(j,2),recv(i).st.rel(j,1)));
+                            % retrieve the gain from the 2D assembly gain
+                            % profile
+                            gr_el = interp1(hard.prism(:,1),hard.prism(:,2),ang);
+                    end
                 end
-            
-                %Find gain of receiver antenna
-                switch hard.point(2)
-                    case 0          %receiver antenna is unpointed
-                        %borang = abs(recv(i).ele(j) - pi/2);
-                        borang = atan2(norm(cross(recv(i).rel(j,:),recv(i).pnt(j,:))),dot(recv(i).rel(j,:),recv(i).pnt(j,:)));
-                        gr_el = hard.gainr.bor(borang);    %[dBi]
-                    case 1          %receiver antenna is pointed
-                        gr_el = hard.gainr.bor(0);
-                    case 3          %ECS receiver is an unpointed prism
-                        % calculate the angle between ECS and RS in
-                        % abosolute, non-rotating coordinates
-                        ang = wrapTo2Pi(atan2(recv(i).rel(j,2),recv(i).rel(j,1)));
-                        % retrieve the gain from the 2D assembly gain
-                        % profile
-                        gr_el = interp1(hard.prism(:,1),hard.prism(:,2),ang);
+                if isnan(gt_el) == 0 && isnan(gr_el) == 0
+                    %Calculate the energy and data transmitted between elements
+                        [out] = zfun_link_rate(frq,recv(i).st.rng(j),recv(i).st.ele(j),powt,hard.cont,gt_el,gr_el,dt,sit);
+                        recv(i).st.dE(j) = out.dE;        %[J] received energy   
+                        recv(i).st.PdB(j) = out.PdB;      %[dBW] received power
+                        recv(i).st.CNR(j) = out.CNRdB;
+                        recv(i).st.EbNo(j) = out.ENdB;
+                        recv(i).st.datrat(j) = out.datrat;
+                        recv(i).st.data(j) = out.data;
+                        recv(i).st.pow(j) = powt*dt;
+                        if recv(i).st.datrat(j) > 0
+                            cnt = cnt + 1;
+                        end
                 end
-            
-                %Calculate the energy and data transmitted between elements
-                [out] = zfun_link_rate(frq,a,powt,hard.cont,gt_el,gr_el,dt,sit);
-                recv(i).dE(j) = out.dE;
-                recv(i).PdB(j) = out.PdB;
-                recv(i).CNR(j) = out.CNRdB;
-                recv(i).datrat(j) = out.datrat;
-                recv(i).data(j) = out.data;
-                recv(i).pow(j) = powt*dt;
-                if recv(i).datrat(j) > 0
-                    cnt = cnt + 1;
-                end 
+               
             end
      end
-     recv(i).cumE = cumsum(recv(i).dE);         %[J] cumulative RF energy received per orbiter
-     sumEner = sumEner + recv(i).cumE(end);     %[J] RF energy received by the whole constellation
-     recv(i).cumDat = cumsum(recv(i).data);     %[bits] cumulative data received per orbiter
-     sumData = sumData + recv(i).cumDat(end);   %[bits] cumulative data received by whole constellation
-     recv(i).cumpow = cumsum(recv(i).pow);      %[J] cumulative RF power transmitted
+     recv(i).st.cumE = cumsum(recv(i).st.dE);         %[J] cumulative RF energy received per orbiter
+     sumEner = sumEner + recv(i).st.cumE(end);     %[J] RF energy received by the whole constellation
+     recv(i).st.cumDat = cumsum(recv(i).st.data);     %[bits] cumulative data received per orbiter
+     sumData = sumData + recv(i).st.cumDat(end);   %[bits] cumulative data received by whole constellation
+     recv(i).st.cumpow = cumsum(recv(i).st.pow);      %[J] cumulative RF power transmitted
 end
      
 
@@ -191,7 +189,7 @@ res(5) = cnt.*dt / 3600;            %[hrs] total downlink time
 %% PLOTS ('plots' = 1 if plots are required)
 if plots == 1
 
-switch sit
+switch sit.cas
     case 1
         time = t/3600;
         tlabel = 'Time [hrs]';
@@ -206,11 +204,11 @@ end
 subplot(3,3,1)
 hold on
 for i = 1:length(recv)
-     plot(time,rad2deg(recv(i).ele))
+     plot(time,rad2deg(recv(i).st.ele))
      xlabel(tlabel)
      xlim([0 time(end)])
      ylabel('Elevation [deg]')
-     ylim([0 90])
+     ylim([-90 90])
      grid on
 end
 hold off
@@ -218,7 +216,7 @@ hold off
 subplot(3,3,2)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).rng/1000)
+     plot(time,recv(i).st.rng/1000)
      xlabel(tlabel)
      xlim([0 time(end)])
      ylabel('Range [km]')
@@ -230,7 +228,7 @@ hold off
 subplot(3,3,3)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).rangrat/1000)
+     plot(time,recv(i).st.rangrat/1000)
      xlabel(tlabel)
      xlim([0 time(end)])
      ylabel('Range Rate [km/s]')
@@ -241,7 +239,7 @@ hold off
 subplot(3,3,4)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).dopfrq/1000)
+     plot(time,recv(i).st.dopfrq/1000)
      xlabel(tlabel)
      xlim([0 time(end)])
      ylabel('Doppler Shift [kHz]')
@@ -249,20 +247,10 @@ for i = 1:length(recv)
 end
 hold off
 
-%subplot(3,3,4)
-%hold on
-%for i = 1:length(recv)
-%     plot(t,recv(i).dE)
-%     xlabel('Time [s]')
-%     ylabel('Received Power [W]')
-%     grid on
-%end
-%hold off
-
 subplot(3,3,5)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).cumpow/1000)
+     plot(time,recv(i).st.cumpow/1000)
      xlabel(tlabel)
      xlim([0 time(end)])
      ylabel('Cumulative Transmitted Energy [kJ]')
@@ -272,29 +260,44 @@ end
 subplot(3,3,6)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).PdB)
+     plot(time,recv(i).st.PdB)
      xlabel(tlabel)
      xlim([0 time(end)])
      ylabel('Signal Power [dBW]')
      ylim(hard.cont.powr)
      grid on
 end
+hold off
 
-subplot(3,3,7)
-hold on
-for i = 1:length(recv)
-     plot(time,recv(i).CNR)
+if sit.cas == 3
+   subplot(3,3,7)
+   hold on
+   for i = 1:length(recv)
+     plot(time,recv(i).st.EbNo)
      xlabel(tlabel)
      xlim([0 time(end)])
-     ylabel('CNR [dB]')
+     ylabel('Eb/No [dB]')
      ylim([-2 inf])
      grid on
+   end
+else
+    subplot(3,3,7)
+    hold on
+    for i = 1:length(recv)
+        plot(time,recv(i).st.CNR)
+        xlabel(tlabel)
+        xlim([0 time(end)])
+        ylabel('CNR [dB]')
+        ylim([0 inf])
+        grid on
+    end
 end
+hold off
 
 subplot(3,3,8)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).datrat/1e6)
+     plot(time,recv(i).st.datrat/1e6)
      xlabel(tlabel)
      xlim([0 time(end)])
      ylabel('Data Rate [Mb/s]')
@@ -306,12 +309,11 @@ hold off
 subplot(3,3,9)
 hold on
 for i = 1:length(recv)
-     plot(time,recv(i).cumDat/1e9)
+     plot(time,recv(i).st.cumDat/1e9)
      xlabel(tlabel)
      xlim([0 time(end)])
      ylabel('Cumulative Data [Gb]')
      grid on
 end
-%legend('RS Orbiter 1','RS Orbiter 2','RS Orbiter 3','RS Orbiter 4','Location','northwest')
 hold off
 end

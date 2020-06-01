@@ -10,8 +10,8 @@ addpath('Output Files')
 % revisited later to check accuracy and suitability.
 
 %% INPUTS
-orb_alts = 4300:20:4500;              %[km] altitude range of interest
-incs = -25:5:25;                        %[degrees] RS inclination range of interest
+orb_alts = 500:200:4000;              %[km] altitude range of interest
+incs = 0:5:90;                        %[degrees] RS inclination range of interest
 inc = deg2rad(incs);
 a = orb_alts + astroConstants(24);     %[km] semi-major axis range of interest
 keps = zeros(length(orb_alts),length(inc),6);              %[km & rads] 
@@ -23,24 +23,27 @@ for jj = 1:length(orb_alts)
     end
 end
 
-ustat = [4900,0,deg2rad(-25),0,0,0];             %[km alt & degrees] typical user position
+ustat = [7400,0,0,0,0,0];             %[km alt & degrees] typical user position
 %ustat(1) = ustat(1) + astroConstants(24);
 %ustat(2:6) = deg2rad(ustat(2:6));     %degrees to radians
 
 dt = 60; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
-sit = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+sit.cas = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+sit.ops = NaN;
 frq = 8490e6;    %[Hz] carrier signal frequency
 freq = 'X band';
-powt = 25;        %[W] ground user RF power emitted
+powt = 30;        %[W] user RF power emitted
 
 %Custom Antennas
 custt.type = 'phased array';
 custt.gain_peak = 27.4;
 custt.HPBW = 2.7;
+custt.tilt = [0 0];         %[deg] tilt from zenith in [azi ele] spherical directions
 custt.plotting = 0;
 custr.type = 'phased array';
 custr.gain_peak = 27.4;
 custr.HPBW = 2.7;
+custr.tilt = [0 0];         %[deg] tilt from zenith in [azi ele] spherical directions
 custr.plotting = 0;
 
 hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);
@@ -49,7 +52,7 @@ hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);
 tic; out = struct; res = zeros(length(incs),length(a),8);
 for i = 1:length(incs)
     for j = 1:length(orb_alts)
-    [out(i,j).all,tots] = pass_over(sit,frq,powt,hard,keps(j,i,:),ustat,t,dt,0);
+    [out(i,j).all,tots] = pass_over(sit,frq,powt,hard,ustat,keps(j,i,:),t,dt,0);
         %storing totals                    %[kJ]    [uJ]    [Gb]    vis     con 
         res(i,j,:) = [incs(i) orb_alts(j) tots(1) tots(2) tots(3) tots(4) tots(5) sols]; 
     end
@@ -72,19 +75,24 @@ plots(:,:,4) = res(:,:,7)./sols;               %[hrs/sol] Downlink Time
 
 %% STUDY PLOTTING
 figure(1)
+colormap(winter)
 subplot(2,2,1)
-surf(orb_alts,incs,plots(:,:,1))
+levels =  0:50:500;
+[C,h] = contour(orb_alts,incs,plots(:,:,1),levels,'LabelSpacing',500);
+clabel(C,h,'FontSize',10);
 ylabel('RS Orbiter inclincation [degrees]')
 xlabel('RS Orbiter Altitude [km]')
-zlabel('Daily Data Transfer [Gb]')
-zlim([0 inf])
+title('Daily Data Transfer [Gb]')
+grid on
 
 subplot(2,2,2)
-surf(orb_alts,incs,plots(:,:,2)*1000)
+levels = 140:10:210;
+[C,h] = contour(orb_alts,incs,plots(:,:,2)*1000,levels,'LabelSpacing',500);
+clabel(C,h,'FontSize',10);
 ylabel('RS Orbiter inclincation [degrees]')
 xlabel('RS Orbiter Altitude [km]')
-zlabel('Data Transfer Efficiency [Mb/kJ/sol]')
-zlim([0 inf])
+title('Data Transfer Efficiency [Mb/kJ/sol]')
+grid on
 
 subplot(2,2,3)
 surf(orb_alts,incs,plots(:,:,3),'FaceColor','b')

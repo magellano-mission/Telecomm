@@ -25,12 +25,25 @@ keps2(:,1) = 1*a2';                       %[km & rads]
 keps2(:,3) = 0;
 
 
-dt = 30; sols = 3; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
-sit = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+dt = 60; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
+sit.cas = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+sit.pol = 0;
 frq = 8490e6;    %[Hz] carrier signal frequency
-powt = 11;        %[W] ground user RF power emitted
+powt = 30;        %[W] ground user RF power emitted
 
-hard = sys_hard('PAX','PAX','sdst',290,[0 0]);
+%Custom Antennas
+custt.type = 'phased array';
+custt.gain_peak = 27.4;
+custt.HPBW = 2.7;
+custt.tilt = [0 0];         %[deg] tilt from zenith in [azi ele] spherical directions
+custt.plotting = 0;
+custr.type = 'phased array';
+custr.gain_peak = 27.4;
+custr.HPBW = 2.7;
+custr.tilt = [0 0];         %[deg] tilt from zenith in [azi ele] spherical directions
+custr.plotting = 0;
+
+hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);
 
 %% FUNCTION
 tic; out = struct; res = NaN(length(orb_alts1),length(orb_alts2),8);
@@ -39,7 +52,7 @@ for i = 1:length(orb_alts1)
     for j = 1:length(orb_alts2)
         if orb_alts1(i) > orb_alts2(j)
             [out(i,j).all,tots] = pass_over(sit,frq,powt,hard,keps1(i,:),keps2(j,:),t,dt,0);
-            %storing totals                      %[kJ]    [uJ]    [Gb]    vis     con 
+            %storing totals                        %[kJ]    [uJ]    [Gb]    vis     con 
             res(i,j,:) = [orb_alts1(i) orb_alts2(j) tots(1) tots(2) tots(3) tots(4) tots(5) sols];
         end
     end
@@ -64,34 +77,56 @@ plots(:,:,4) = res(:,:,7)./sols;             %[hrs/sol] Downlink Time
 %% STUDY PLOTTING
 
 figure(1)
-subplot(1,2,1)
-yyaxis left
-plot(res(:,1),plots(:,1))
-xlabel('ECS Altitude [km]')
-ylabel('Data Transfer [Gb/sol]')
-ylim([0 inf])
-title({'ECS Altitude vs Daily Data Transfer'})
-hold on
-yyaxis right
-plot(res(:,1),plots(:,2)*1000,'--')
-xlabel('ECS Altitude [km]')
-ylabel('Data Transfer Efficiency [Mb/kJ/sol]')
-ylim([0 inf])
-legend('Daily Data Transfer','Data Transfer Efficiency','Location','southwest')
-pbaspect([1 1 1])
-hold off
+subplot(2,2,1)
+colormap('winter')
+levels = 100:50:500;
+[C,h] = contour(orb_alts2,orb_alts1,plots(:,:,1),levels,'LabelSpacing',300);
+clabel(C,h,'FontSize',10);
+xlim([0 3000])
+ylim([0 10000])
+xlabel('RS Altitude [km]')
+ylabel('ECS Altitude [km]')
+title({'Orbiter Altitudes vs Daily Data Transfer [Gb]'})
+grid on
 
-subplot(1,2,2)
-plot(res(:,1),plots(:,3))
-xlabel('ECS Altitude [km]')
-ylabel('Visible Time  [hrs/sol]')
-title({'Orbiter Altitude vs Daily Time Windows'})
-hold on
-plot(res(:,1),plots(:,4),'--')
-ylim([0 inf])
-legend('Daily Visible Time','Daily Downlink Time','Location','southeast')
-pbaspect([1 1 1])
-hold off
+subplot(2,2,2)
+colormap('winter')
+[C,h] = contour(orb_alts2,orb_alts1,plots(:,:,2)*1000,'LabelSpacing',300);
+clabel(C,h,'FontSize',10);
+xlim([0 3000])
+ylim([0 10000])
+xlabel('RS Altitude [km]')
+ylabel('ECS Altitude [km]')
+title('Orbiter Altitudes vs Data Transfer Efficiency [Mb/kJ/sol]')
+grid on
+
+%yyaxis left
+%plot(res(:,1),plots(:,1))
+%xlabel('ECS Altitude [km]')
+%ylabel('Data Transfer [Gb/sol]')
+%ylim([0 inf])
+%title({'ECS Altitude vs Daily Data Transfer'})
+%hold on
+%yyaxis right
+%plot(res(:,1),plots(:,2)*1000,'--')
+%xlabel('ECS Altitude [km]')
+%ylabel('Data Transfer Efficiency [Mb/kJ/sol]')
+%ylim([0 inf])
+%legend('Daily Data Transfer','Data Transfer Efficiency','Location','southwest')
+%pbaspect([1 1 1])
+%hold off
+
+%subplot(1,2,2)
+%plot(res(:,1),plots(:,3))
+%xlabel('ECS Altitude [km]')
+%ylabel('Visible Time  [hrs/sol]')
+%title({'Orbiter Altitude vs Daily Time Windows'})
+%hold on
+%plot(res(:,1),plots(:,4),'--')
+%ylim([0 inf])
+%legend('Daily Visible Time','Daily Downlink Time','Location','southeast')
+%pbaspect([1 1 1])
+%hold off
 
 fig=gcf;
 fig.Units='normalized';
