@@ -25,7 +25,7 @@ keps2(:,1) = 1*a2';                       %[km & rads]
 keps2(:,3) = 0;
 
 
-dt = 60; sols = 5; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
+dt = 60; sols = 1; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
 sit.cas = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
 sit.pol = 0;
 frq = 8490e6;    %[Hz] carrier signal frequency
@@ -35,12 +35,16 @@ powt = 30;        %[W] ground user RF power emitted
 custt.type = 'phased array';
 custt.gain_peak = 27.4;
 custt.HPBW = 2.7;
+custt.dir = 1;
 custt.tilt = [0 0];         %[deg] tilt from zenith in [azi ele] spherical directions
 custt.plotting = 0;
+custt.lims = [-60 60];
 custr.type = 'phased array';
 custr.gain_peak = 27.4;
+custr.dir = -1;
 custr.HPBW = 2.7;
 custr.tilt = [0 0];         %[deg] tilt from zenith in [azi ele] spherical directions
+custr.lims = [-60 60];
 custr.plotting = 0;
 
 hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0]);

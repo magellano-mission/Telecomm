@@ -19,14 +19,13 @@ keps_e = [orb_alt_e 0 0 0 0 0];       %[km & rads]
 dt = 86400; days = 365*2.135; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
 %dt = 60; days = 1; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
 sit.cas = 3;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
-sit.ops = 1;
-sit.pol = 0;
+sit.ops = 0;
 frq = 32e9;    %[Hz] carrier signal frequency
 powt = 200;        %[W] use user RF power emitted
 
 %Custom Antennas
 custt.type = 'parabolic';
-custt.gain_peak = 61.5;
+custt.gain_peak = 59.2;
 custt.HPBW = 0.3;
 custt.dir = 1;              
 custt.tilt = [0 0];
@@ -47,11 +46,11 @@ hard.cont.M = 4;
 
 hold on
 %% FUNCTION
-tic; out = struct; %res = zeros(length(keps_m),7);
+tic; out = struct; %res = zeros(length(keps_m),6);
 
 [out.all,tots] = pass_over(sit,frq,powt,hard,keps_m,keps_e,t,dt,1);
     %storing totals          %[kJ]    [uJ]    [Gb]    vis     con 
-    res = [keps_m(1) tots(1) tots(2) tots(3) tots(4) tots(5) days]; 
+    %res = [tots(1) tots(2) tots(3) tots(4) tots(5) days]; 
 
 
 S(1) = load('chirp'); sound(S(1).y,S(1).Fs); toc

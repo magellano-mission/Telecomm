@@ -51,8 +51,8 @@ tic
 [recv,trans,tots] = pass_over(sit1,frq1,powt1,hard,rstat,tstat,t,dt,0);
 toc
 
-myVideo = VideoWriter('movie');
-myVideo.FrameRate = 1;
+myVideo = VideoWriter('newfile.avi','Motion JPEG AVI');
+myVideo.FrameRate = 10;
 open(myVideo);
 
 figure (1)
@@ -73,7 +73,7 @@ axis equal
      view([12e6 3e6 3e6])
      frame = getframe(gcf);
      writeVideo(myVideo,frame);
-     pause(0.01)  
+     %pause(0.01)  
      if i < length(recv.st.pos)
         delete(y)
      end

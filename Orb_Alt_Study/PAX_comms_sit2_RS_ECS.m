@@ -11,7 +11,7 @@ addpath('Output Files')
 
 %% INPUTS
 %Receiving orbiter in higher orbit
-orb_alts1 = 3000:1000:17000;              %[km] altitude range of interest
+orb_alts1 = 3000:500:10000;              %[km] altitude range of interest
 a1 = orb_alts1 + astroConstants(24);     %[km] semi-major axis range of interest
 keps1 = zeros(length(a1),6);              %[km & rads] 
 keps1(:,1) = 1*a1';                       %[km & rads]
@@ -25,32 +25,39 @@ keps2(:,1) = 1*a2';                       %[km & rads]
 keps2(:,3) = deg2rad(0);
 
 
-dt = 60; sols = 1; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
-sit = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+dt = 60; sols = 3; t = 0: dt : sols*88620; %[s] Mday=88620, Eday=86400
+sit.cas = 1;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+sit.ops = 0;
 frq = 8490e6;    %[Hz] carrier signal frequency
-powt = 25;        %[W] ground user RF power emitted
+powt = 30;        %[W] ground user RF power emitted
 
 %Custom Antennas
 custt.type = 'phased array';
 custt.gain_peak = 27.4;
 custt.HPBW = 2.7;
-custt.plotting = 1;
+custt.dir = 1;
+custt.tilt = [0 0];         %[deg] tilt from zenith in [azi ele] spherical directions
+custt.lims = [-60 60];
+custt.plotting = 0;
 custr.type = 'phased array';
 custr.gain_peak = 27.4;
+custr.dir = -1;
+custr.tilt = [0 0];         %[deg] tilt from zenith in [azi ele] spherical directions
+custr.lims = [-60 60];
 custr.HPBW = 2.7;
 custr.plotting = 0;
 
-hard = sys_hard(0,0,custt,custr,'sdst',290,[0 3]);
+hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0],sit);
 
-sides = 4;
-[hard.prism] = phased_prism(sides,custr.gain_peak,1);
+sides = 3;
+[hard.prism] = phased_prism(sides,custr.gain_peak,0);
 
 
 %% FUNCTION
 tic; out = struct; res = NaN(length(orb_alts1),7);
 
 for i = 1:length(orb_alts1)
-            [out(i).all,tots] = pass_over(sit,frq,powt,hard,keps1(i,:),keps2,t,dt,0);
+            [out(i).all,~,tots] = pass_over(sit,frq,powt,hard,keps1(i,:),keps2,t,dt,0);
             %storing totals          %[kJ]    [uJ]    [Gb]    vis     con 
             res(i,:) = [orb_alts1(i) tots(1) tots(2) tots(3) tots(4) tots(5) sols];
 end
