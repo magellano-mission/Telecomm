@@ -12,14 +12,14 @@ addpath('Supporting Functions')
 T_amb = 290;       %[K] Assumed ambient temperature (STANDARD - REVISIT)
 T_ant = 20;        %[K] Assumed antenna temperature in space (REVISIT)
 dt = 60;                  %[s] time step
-t = 0: dt : 0.5*88620;      %[s] Mars day = 88620, Earth day = 86400
+t = 0: dt : 1*88620;      %[s] Mars day = 88620, Earth day = 86400
 a_Earth = astroConstants(2);
 a_Mars  = 1.52*a_Earth;
 
 
 %% INPUTS
-rstat = [4900,0,0,0,0,0];            
-tstat = [4900,0,deg2rad(90),0,0,0];
+rstat = [7400,0,0,0,0,0];            
+tstat = [4900,0,0,0,0,0];
 %tstat = [deg2rad(0) 0];
 
 sit1.cas = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
@@ -30,17 +30,17 @@ powt1 = 30;        %[W] ground user RF power emitted
 
 %Custom Antennas
 custt.type = 'phased array';
-custt.gain_peak = 24.3;     %[dBi]
+custt.gain_peak = 27.3;     %[dBi]
 custt.HPBW = 2.7;
-custt.dir = -1;              %[-] 1 zenith pointing, -1 nadir pointing
-custt.tilt = [0 -45];         %[deg] tilt in [azim elev] spherical directions
+custt.dir = 1;              %[-] 1 zenith pointing, -1 nadir pointing
+custt.tilt = [0 0];         %[deg] tilt in [azim elev] spherical directions
 custt.lims = [-60 60];      %[deg] steering limits
 custt.plotting = 0;
 custr.type = 'phased array';
-custr.gain_peak = 24.3;     %[-] 1 zenith pointing, -1 nadir pointing
+custr.gain_peak = 27.3;     %[-] 1 zenith pointing, -1 nadir pointing
 custr.HPBW = 2.7;
 custr.dir = -1;             %[-] 1 zenith pointing, -1 nadir pointing
-custr.tilt = [0 45];         %[deg] tilt in [azim elev] spherical directions
+custr.tilt = [0 0];         %[deg] tilt in [azim elev] spherical directions
 custr.lims = [-60 60];      %[deg] steering limits
 custr.plotting = 0;
 
@@ -48,7 +48,7 @@ hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0],sit1);
 
 %% FUNCTION
 tic
-[recv,trans,tots] = pass_over(sit1,frq1,powt1,hard,rstat,tstat,t,dt,0);
+[recv,trans,tots] = pass_over(sit1,frq1,powt1,hard,rstat,tstat,t,dt,1);
 toc
 
 myVideo = VideoWriter('newfile.avi','Motion JPEG AVI');
