@@ -18,7 +18,8 @@ keps_e = [orb_alt_e 0 0 0 0 0];       %[km & rads]
 
 dt = 86400; days = 365*2.135; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
 %dt = 60; days = 1; t = 0: dt : days*86400; %[s] Mday=88620, Eday=86400
-sit = 3;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+sit.cas = 3;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
+sit.ops = 1;
 frq = 32e9;    %[Hz] carrier signal frequency
 powt = 35;        %[W] use user RF power emitted
 
@@ -26,6 +27,10 @@ hard = sys_hard('OHGAKa','DSN34Ka',0,0,'dsn',290,[1 1]);
 hard.cont.symmax = 4e6;
 hard.cont.BW = hard.cont.symmax/1.7;
 hard.cont.M = 4;
+
+set(0, 'DefaultLineLineWidth', 1.5)
+load('MagellanoColorMap.mat');
+colormap(MagellanoColorMap)
 
 %% FUNCTION
 tic; out = struct; %res = zeros(length(keps_m),7);

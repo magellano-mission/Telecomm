@@ -11,15 +11,15 @@ addpath('Supporting Functions')
 %% Environment parameters
 T_amb = 290;       %[K] Assumed ambient temperature (STANDARD - REVISIT)
 T_ant = 20;        %[K] Assumed antenna temperature in space (REVISIT)
-dt = 60;                  %[s] time step
+dt = 30;                  %[s] time step
 t = 0: dt : 1*88620;      %[s] Mars day = 88620, Earth day = 86400
 a_Earth = astroConstants(2);
 a_Mars  = 1.52*a_Earth;
 
 
 %% INPUTS
-rstat = [7400,0,0,0,0,0];            
-tstat = [4900,0,0,0,0,0];
+rstat = [4900,0,0,0,0,0];            
+tstat = [3700,0,0,0,0,0];
 %tstat = [deg2rad(0) 0];
 
 sit1.cas = 2;          %[-] 1 - Mars ground to Mars orbiter, 2 - Mars orbiter to Mars orbiter, 3 - Mars to Earth (generic)
@@ -45,12 +45,17 @@ custr.lims = [-60 60];      %[deg] steering limits
 custr.plotting = 0;
 
 hard = sys_hard(0,0,custt,custr,'sdst',290,[0 0],sit1);
+set(0, 'DefaultLineLineWidth', 1.5)
+load('MagellanoColorMap.mat');
+colormap(MagellanoColorMap)
 
 %% FUNCTION
+
 tic
 [recv,trans,tots] = pass_over(sit1,frq1,powt1,hard,rstat,tstat,t,dt,1);
 toc
 
+%{
 myVideo = VideoWriter('newfile.avi','Motion JPEG AVI');
 myVideo.FrameRate = 10;
 open(myVideo);
@@ -85,5 +90,5 @@ axis equal
  end
  %plot3(recv.st.pos(i,1),recv.st.pos(i,2),recv.st.pos(i,3),'ob','MarkerSize',5,'LineWidth',5)
  %plot3(trans.st.pos(i,1),trans.st.pos(i,2),trans.st.pos(i,3),'or','MarkerSize',5,'LineWidth',5)
- 
+ %}
 

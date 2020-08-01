@@ -45,6 +45,10 @@ hard.cont.BW = hard.cont.symmax / 2;
 hard.cont.M = 4;
 
 hold on
+
+set(0, 'DefaultLineLineWidth', 1.5)
+load('MagellanoColorMap.mat');
+colormap(MagellanoColorMap)
 %% FUNCTION
 tic; out = struct; %res = zeros(length(keps_m),6);
 
